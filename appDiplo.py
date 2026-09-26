@@ -5877,6 +5877,10 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     mse = mean_squared_error(y_test, predicciones)
     mae = mean_absolute_error(y_test, predicciones)
     r2 = r2_score(y_test, predicciones)
+    # --- YAE: CÁLCULO DEL R² AJUSTADO ---
+    n = len(y_test)  # Cantidad de muestras en el conjunto de test
+    p = X_test.shape[1]  # Cantidad de variables (features) usadas
+    r2_adj = 1 - ((1 - r2) * (n - 1) / (n - p - 1)) if (n - p - 1) > 0 else r2
 
     # 6. Cálculo de importancia de variables para la métrica
     importancias = model.feature_importances_
@@ -5912,6 +5916,7 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
         f"Error Cuadrático Medio (MSE): {mse:.2f}<br>"
         f"Error Medio Absoluto (MAE): {mae:.2f}<br>"
         f"Precisión (R² Score): {r2:.4f}<br>"
+        f"R² Ajustado: {r2_adj:.4f}<br>"
         f"El MAE indica que, en promedio, el modelo se equivoca por "
         f"{mae:.2f} unidades."
     )
@@ -6051,10 +6056,11 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     mse_text = f"MSE = {mse:.2f}"
     mae_text = f"MAE = {mae:.2f}"
     r2_text = f"R² = {r2:.4f}"
+    r2_adj_text = f"R² Adj = {r2_adj:.4f}"
 
     return (fig, texto_resumen, figPrediccion, df_anual,
         cultivo_seleccionado, provincia_seleccionada, depto_seleccionado,
-        indicador_seleccionado.upper(), serie_text, mse_text, mae_text, r2_text,
+        indicador_seleccionado.upper(), serie_text, mse_text, mae_text, r2_text, r2_adj_text,
         pred1_text, pred2_text, pred3_text, pred4_text, pred5_text
     )
 
