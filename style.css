@@ -144,6 +144,23 @@
     margin-top: 28px !important;
     margin-bottom: 0px !important;
 }
+.custom-tab-3 {
+    /* background-image: asignada en formato Base64 en app.py */
+    font-size: var(--font-title2) !important;
+    font-weight: bold !important;
+    border-radius: 10px !important;
+    border: none !important;
+    padding-left: 15px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    box-shadow: var(--shadow-soft) !important;
+    width: 100% !important;
+    /*height: 100% !important;*/
+    margin-top: -10px !important;
+    margin-bottom: 10px !important;
+    /* background-repeat: no-repeat !important;
+    background-size: cover !important; */
+}
 .custom-graf-panel {
     background-color: #ffffff !important;
     border-radius: 10px !important;
@@ -667,6 +684,20 @@ table th,
     font-size: var(--font-data) !important;
 }
 
+
+/* ### FORMATO DE TABLA DE CONCLUSIONES
+------------------------------------------------ */
+.custom-table table {
+    table-layout: fixed !important;
+    width: 100% !important;
+}
+/* Fuerza a que todas las celdas de encabezado y datos dividan el espacio de forma idéntica */
+.custom-table th, .custom-table td {
+    width: 16.66% !important; /* 100% / 6 columnas = 16.66% */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 
 /* ### PARA UBICAR COMPONENTES UNO A LA PAR DEL OTRO

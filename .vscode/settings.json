@@ -1,3 +1,11 @@
 {
-    "editor.fontSize": 16
+    "editor.fontSize": 16,
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "git.ignoreLimitWarning": true,
+    // Fuerza a VS Code a activar el entorno virtual al instanciar una terminal
+    "python.terminal.activateEnvironment": true,
+    // Define de forma explícita la ruta del intérprete del workspace
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    // Asigna PowerShell como la terminal integrada predeterminada
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
 }

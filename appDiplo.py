@@ -1,3 +1,4 @@
+# region IMPORTACIÓN DE LIBRERÍAS
 import gradio as gr
 import pandas as pd
 import numpy as np
@@ -35,15 +36,17 @@ import plotly.express as px
 import unicodedata
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.compose import ColumnTransformer
 # fin prg MAF
+# endregion IMPORTACIÓN DE LIBRERÍAS
 
 
 # region CONSTANTES Y DICCIONARIOS
 # --- Constantes ---
-DATA_PATH = "./Datasets"
-IMAGE_PATH = "./Images"
+DATA_PATH = "./datasets"
+IMAGE_PATH = "./images"
 FILE_MAP = {
     "ARROZ": "arroz_depurado.csv",
     "AVENA": "avena_depurado.csv",
@@ -83,7 +86,7 @@ dict_nlargos = df_vars.set_index(df_vars.columns[0])[df_vars.columns[1]].to_dict
 variables = os.path.join(DATA_PATH, "nombres_cortos.csv")
 df_vars = pd.read_csv(variables, header=None, encoding='latin-1', sep=',')
 dict_ncortos = df_vars.set_index(df_vars.columns[0])[df_vars.columns[1]].to_dict()
-# endregion
+# endregion CONSTANTES Y DICCIONARIOS
 
 
 # region FUNCIONES DE LECTURA DE ARCHIVOS
@@ -126,7 +129,7 @@ def load_html(file_path):
 # endregion
 
 
-# region FUNCIONES PARA LA PESTAÑA "EDA"
+# region FUNCIONES PARA LA PESTAÑA "EDA" (JORGE)
 def tab_EDA_on_cultivo(cultivo, automatico, interactivo):
     df, provincias = load_data(cultivo)
 
@@ -995,7 +998,7 @@ def tab_EDA_show_data(df, cultivo, provincia, departamento, automatico, interact
         if cultivo and provincia and departamento:
             info_text = f" CULTIVO {cultivo.upper()} PARA {provincia} - {departamento}: SIN REGISTROS"
         else:
-            info_text = f" DEBE INDICARSE EL CULTIVO, LA PROVINCIA Y LA ZONA PARA MOSTRAR LOS DATOS"
+            info_text = f" DEBE INDICARSE CULTIVO, PROVINCIA Y DEPARTAMENTO/ZONA PARA MOSTRAR LOS DATOS"
 
         return (# Dataframes original y filtrado
                 df, pd.DataFrame(),
@@ -1538,10 +1541,10 @@ def tab_EDA_create_actual_evolution_graph(df, indicador, variable, lag, interact
 
     return figura      
 
-# endregion FUNCIONES PARA LA PESTAÑA "EDA"
+# endregion FUNCIONES PARA LA PESTAÑA "EDA" (JORGE)
 
 
-# region FUNCIONES PARA LA PESTAÑA "SERIES TEMPORALES"
+# region FUNCIONES PARA LA PESTAÑA "SERIES TEMPORALES" (JORGE)
 
 INTERACTIVO = True
 H_INTERACTIVO = 320
@@ -1627,7 +1630,9 @@ def tab_ST_on_cult_select(dataset_type, serie, mg, tend, mm, sd):
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                "---", "---", "---", "---"
                 )
 
     # Se arma el listado ordenado de provincias y se guarda la primera provincia
@@ -1674,7 +1679,7 @@ def tab_ST_on_cult_select(dataset_type, serie, mg, tend, mm, sd):
     msg = ("<b>"
            f"CULTIVO: {dataset_type.upper()}<br>"
            f"PROVINCIA: {prov_first.upper()}<br>"
-           f"DEPARTAMENTO: {dpto_first.upper()}<br>"
+           f"DEPARTAMENTO/ZONA: {dpto_first.upper()}<br>"
            f"INDICADOR: {dict_nlargos[indicadores_originales[0]].upper()}"
            "</b>")
 
@@ -1753,7 +1758,10 @@ def tab_ST_on_cult_select(dataset_type, serie, mg, tend, mm, sd):
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                dataset_type.upper(), prov_first.upper(), dpto_first.upper(), 
+                dict_nlargos[ind_orig].upper()
                 )
 
 def tab_ST_on_prov_select(df, cultivo, provincia, indicador,
@@ -1839,7 +1847,9 @@ def tab_ST_on_prov_select(df, cultivo, provincia, indicador,
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                "---", "---", "---", "---"
                 )
     
     # Se obtiene información de la serie
@@ -1861,7 +1871,7 @@ def tab_ST_on_prov_select(df, cultivo, provincia, indicador,
 
     msg = ("<b>"
            f"CULTIVO: {cultivo.upper()}<br>"
-           f"PROVINCIA: {provincia.upper()}<br>DEPARTAMENTO: {dpto_first.upper()}<br>"
+           f"PROVINCIA: {provincia.upper()}<br>DEPARTAMENTO/ZONA: {dpto_first.upper()}<br>"
            f"INDICADOR: {dict_nlargos[ind_orig].upper()}"
            "</b>")
     return (filtered, pd.DataFrame(),
@@ -1928,7 +1938,10 @@ def tab_ST_on_prov_select(df, cultivo, provincia, indicador,
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                cultivo.upper(), provincia.upper(), dpto_first.upper(), 
+                dict_nlargos[ind_orig].upper()
                 )
 
 def tab_ST_on_option_select(df, cultivo, provincia, departamento, indicador,
@@ -2006,7 +2019,9 @@ def tab_ST_on_option_select(df, cultivo, provincia, departamento, indicador,
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                "---", "---", "---", "---"
                 )
     
     # Se obtiene información de la serie
@@ -2028,7 +2043,7 @@ def tab_ST_on_option_select(df, cultivo, provincia, departamento, indicador,
     msg = ("<b>"
            f"CULTIVO: {cultivo.upper()}<br>"
            f"PROVINCIA: {provincia.upper()}<br>"
-           f"DEPARTAMENTO: {departamento.upper()}<br>"
+           f"DEPARTAMENTO/ZONA: {departamento.upper()}<br>"
            f"INDICADOR: {dict_nlargos[ind_orig].upper()}"
            "</b>")
     return (filtered, pd.DataFrame(),
@@ -2093,7 +2108,10 @@ def tab_ST_on_option_select(df, cultivo, provincia, departamento, indicador,
                 # Area de cinco gráficos espectrales
                 gr.update(visible=False),
                 # Informe Fourier
-                gr.update(visible=False)
+                gr.update(visible=False),
+                # Campos de la pestaña CONCLUSIONES
+                cultivo.upper(), provincia.upper(), departamento.upper(), 
+                dict_nlargos[ind_orig].upper()
                 )
 
 def tab_ST_on_graph_change(filtered1, filtered2, filtered3, ind1, ind2, ind3,
@@ -3456,9 +3474,9 @@ def tab_ST_ARIMA_all(df1, df2, df3, var1, var2, var3, p1, p2, p3, d1, d2, d3, q1
     - graf: si es FALSE muestra toda la información (tablas y gráficos)
     '''
 
-    df_final1, desc1, fig1a, predic1, fig1b, resid1, comparat1 = tab_ST_ARIMA(df1, var1, p1, d1, q1, n = 5, graf = False)
-    df_final2, desc2, fig2a, predic2, fig2b, resid2, comparat2 = tab_ST_ARIMA(df2, var2, p2, d2, q2, n = 5, graf = False)
-    df_final3, desc3, fig3a, predic3, fig3b, resid3, comparat3 = tab_ST_ARIMA(df3, var3, p3, d3, q3, n = 5, graf = False)
+    df_final1, desc1, fig1a, predic1, fig1b, resid1, comparat1, dat11, dat12, dat13, dat14, dat15, pred11, pred12, pred13, pred14, pred15 = tab_ST_ARIMA(df1, var1, p1, d1, q1, n = 5, graf = False)
+    df_final2, desc2, fig2a, predic2, fig2b, resid2, comparat2, dat21, dat22, dat23, dat24, dat25, pred21, pred22, pred23, pred24, pred25 = tab_ST_ARIMA(df2, var2, p2, d2, q2, n = 5, graf = False)
+    df_final3, desc3, fig3a, predic3, fig3b, resid3, comparat3, dat31, dat32, dat33, dat34, dat35, pred31, pred32, pred33, pred34, pred35 = tab_ST_ARIMA(df3, var3, p3, d3, q3, n = 5, graf = False)
 
     return (# ARIMA de la Serie 1
             df_final1,
@@ -3495,7 +3513,14 @@ def tab_ST_ARIMA_all(df1, df2, df3, var1, var2, var3, p1, p2, p3, d1, d2, d3, q1
             gr.update(value = predic3, visible = True),
             gr.update(value = fig3b, visible = fig3b is not None),
             gr.update(value = resid3, visible = True),
-            gr.update(value = comparat3, visible = True)
+            gr.update(value = comparat3, visible = True),
+            ### Métricas para pestaña conclusiones
+            dat11, dat12, dat13, dat14, dat15,
+            dat21, dat22, dat23, dat24, dat25,
+            dat31, dat32, dat33, dat34, dat35,
+            pred11, pred12, pred13, pred14, pred15,
+            pred21, pred22, pred23, pred24, pred25,
+            pred31, pred32, pred33, pred34, pred35
             )
 
 def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
@@ -3575,6 +3600,15 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
     
     # Se convierte el nombre corto del  "indicador" a su nombre original
     ind_orig = next((k for k, v in dict_ncortos.items() if v == indicador), indicador)
+
+    # Se aguarda la unidad del indicador
+    unidad_ind = {
+        'Sup.Semb.[ha]': ' ha',
+        'Sup.Cos.[ha]': ' ha',
+        'Rend.[kg/ha]': ' kg/ha',
+        'Prod.[ton]': ' ton'
+    }
+    unidad = unidad_ind.get(indicador, "")
     
     # Se convierte 'periodo' a formato datetime y establecerlo como índice con frecuencia,
     # porque así lo requiere el modelo ARIMA
@@ -3767,6 +3801,8 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
         'Inf': intervalos.iloc[:, 0].values,
         'Sup': intervalos.iloc[:, 1].values
     })
+
+    pred1, pred2, pred3, pred4, pred5 = df_plot_pred['Valor'].round(2)
 
     # Se agrega al df histórico el primer dato del df predicho para 
     # que no quede un salto en el gráfico.
@@ -4223,14 +4259,23 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
     """
 
     reporte_pruebas = reporte_jarque_bera + reporte_ljung_box + reporte_engle_arch
-    reporte_detallado =  reporte_pruebas + reporte_comparativo
+    # reporte_detallado =  reporte_pruebas + reporte_comparativo
 
+    # Métricas para la pestaña CONCLUSIONES
+    serie_text = f"{n_obs} años",
+    metrica1 = f"AIC = {aic_val:.2f}",
+    metrica2 = f"BIC = {bic_val:.2f}",
+    metrica3 = f"RMSE = {rmse_val:,.2f}",
+    
     if graf:
         return fig_prediccion
     else:
         return (df_final, reporte_general, 
                 fig_prediccion, tabla_pred, 
-                fig_residuos, reporte_pruebas, reporte_comparativo)
+                fig_residuos, reporte_pruebas, reporte_comparativo,
+                indicador.upper(), serie_text, metrica1, metrica2, metrica3,
+                str(pred1) + unidad, str(pred2) + unidad, str(pred3) + unidad,
+                str(pred4) + unidad, str(pred5) + unidad)
 
 def tab_ST_ARIMA_graf(df, var, p, d, q):
 
@@ -5236,7 +5281,7 @@ def tab_ST_Fourier_Wavelets_Triple(df_o1, df_o2, df_o3, df_d1, df_d2, df_d3, var
 
     return fig, reporte_html
 
-# endregion FUNCIONES PARA LA PESTAÑA "SERIES TEMPORALES"
+# endregion FUNCIONES PARA LA PESTAÑA "SERIES TEMPORALES" (JORGE)
 
 
 # region FUNCIONES PARA IMAGENES/VIDEOS EN BASE64 E INCLUSIÓN EN CÓDIGO CSS
@@ -5279,6 +5324,7 @@ extra_css = f"""
 .title-tab {{ background-image: url('data:image/png;base64,{fondo_titulo}') !important; }}
 .custom-tab {{ background-image: url('data:image/png;base64,{fondo_contenedor}') !important; }}
 .custom-tab-2 {{ background-image: url('data:image/png;base64,{fondo_contenedor}') !important; }}
+.custom-tab-3 {{ background-image: url('data:image/png;base64,{fondo_contenedor}') !important; }}
 .header-tab {{ background-image: url('data:image/png;base64,{fondo_encabezado}') !important; }}
 .portrait-bg-1 {{ background-image: url('data:image/png;base64,{fondo_portada}') !important; }}
 .portrait-bg-2 {{ background-image: url('data:image/png;base64,{fondo_titulo}') !important; }}
@@ -5298,26 +5344,114 @@ portada_video = f'''
 '''
 # endregion FUNCIONES PARA IMAGENES/VIDEOS EN BASE64 E INCLUSIÓN EN CÓDIGO CSS
 
-# YAE: ############################################################
-# region FUNCIONES PARA LA PESTAÑA "BOSQUES ALEATORIOS"
-# #################################################################
+
+# region FUNCIONES PARA LA PESTAÑA "BOSQUES ALEATORIOS" (YAEL)
+
 def rf_on_cultivo(cultivo):
 
     if cultivo == "Elegir cultivo..." or cultivo is None:
-            return gr.update(choices=[], value=None), None
+            return (gr.update(choices=[], value=None), 
+                    gr.update(choices=[], value=None),
+                    gr.update(choices=[], value=None), None)
     
     df, provincias = load_data(cultivo)
 
     if df.empty:
-        return gr.update(choices=[], value=None), None
+        return (gr.update(choices=[], value=None), 
+                gr.update(choices=[], value=None),
+                gr.update(choices=[], value=None), None)
 
+    # Se arma el listado ordenado de provincias y se guarda la primera provincia
     provincias_sorted = sorted([str(p) for p in provincias])
+    prov_first = provincias_sorted[0]
 
+    # Se arma el listado ordenado de departamentos de la primera provincia de la lista
+    # y se guarda el primer departamento de la lista
+    dptos = df[df['provincia'] == prov_first]['departamento'].unique()
+    dptos_sorted = sorted([str(d) for d in dptos if d is not None])
+    dpto_first = dptos_sorted[0]
+
+    # Listado de las variables numéricas del dataset, excluyendo "periodo"
+    # y se guarda la primera variable de la lista
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+    cols_to_plot = [c for c in numeric_cols if c != 'periodo']
+    indicadores_originales = cols_to_plot
+
+    # Se renombran los indicadores (nombres de columnas numéricas) con los nombres cortos del diccionario
+    indicadores = [dict_ncortos.get(col, col) for col in indicadores_originales]
+    # Se guarda el nombre corto del primer indicador
+    indicador_first = indicadores[0]
+
+    # Se filtra el dataset de cultivo
+    df_filtered = get_filtered_subset(df, prov_first, dpto_first, KEY_COLUMNS)
         
-    return gr.update(
-        choices= ["Elegir provincia..."] + provincias_sorted,
-        value="Elegir provincia..."
-    ), df
+    return (gr.update(choices=provincias_sorted, value=prov_first),
+            gr.update(choices=dptos_sorted, value=dpto_first),
+            gr.update(choices=indicadores, value=indicador_first), df_filtered
+    )
+
+def rf_on_provincia(cultivo, provincia):
+
+    if provincia is None:
+            return (gr.update(choices=[], value=None),
+                    gr.update(choices=[], value=None), None)
+
+    df, _ = load_data(cultivo)
+
+    if df.empty:
+        return (gr.update(choices=[], value=None),
+                gr.update(choices=[], value=None), None)
+
+    deptos = df[df['provincia'] == provincia]['departamento'].unique()
+    deptos_sorted = sorted([str(d) for d in deptos])
+    depto_first = deptos_sorted[0] if deptos_sorted else None 
+
+    # Listado de las variables numéricas del dataset, excluyendo "periodo"
+    # y se guarda la primera variable de la lista
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+    cols_to_plot = [c for c in numeric_cols if c != 'periodo']
+    indicadores_originales = cols_to_plot
+
+    # Se renombran los indicadores (nombres de columnas numéricas) con los nombres cortos del diccionario
+    indicadores = [dict_ncortos.get(col, col) for col in indicadores_originales]
+    # Se guarda el nombre corto del primer indicador
+    indicador_first = indicadores[0]
+
+    # Se filtra el dataset de cultivo
+    df_filtered = get_filtered_subset(df, provincia, depto_first, KEY_COLUMNS)
+
+    return (gr.update(choices=deptos_sorted, value=depto_first),
+            gr.update(choices=indicadores, value=indicador_first),
+            df_filtered
+    )
+
+def rf_on_departamento(cultivo, provincia, departamento):
+
+    if departamento is None:
+            return (gr.update(choices=[], value=None), None)
+
+    df, _ = load_data(cultivo)
+
+    if df.empty:
+        return (gr.update(choices=[], value=None), None)
+
+    # Listado de las variables numéricas del dataset, excluyendo "periodo"
+    # y se guarda la primera variable de la lista
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+    cols_to_plot = [c for c in numeric_cols if c != 'periodo']
+    indicadores_originales = cols_to_plot
+
+    # Se renombran los indicadores (nombres de columnas numéricas) con los nombres cortos del diccionario
+    indicadores = [dict_ncortos.get(col, col) for col in indicadores_originales]
+    # Se guarda el nombre corto del primer indicador
+    indicador_first = indicadores[0]
+
+    # Se filtra el dataset de cultivo
+    df_filtered = get_filtered_subset(df, provincia, departamento, KEY_COLUMNS)
+
+    return (gr.update(choices=indicadores, value=indicador_first),
+            df_filtered
+    )
 
 def rf_df_escalar(df_esc):
     
@@ -5360,13 +5494,17 @@ def rf_df_varNro(df_varNro, cultivo_seleccionado):
 
     return df_varNro
 
-def df_base(dfData, cultivo_seleccionado, provincia_seleccionada):
+def df_base(dfData, cultivo_seleccionado, provincia_seleccionada, depto_seleccionado):
     # Validación de seguridad
-    if dfData is None or cultivo_seleccionado == "Elegir cultivo..." or provincia_seleccionada in ["Elegir provincia...", None]:
+    if dfData is None or cultivo_seleccionado == "Elegir cultivo..." \
+        or provincia_seleccionada == None \
+        or depto_seleccionado == None:
         return None, None, None
 
     # Filtrado y Cruce
-    df_filt = dfData[dfData['provincia'] == provincia_seleccionada]
+    # df_filt = dfData[dfData['provincia'] == provincia_seleccionada]
+    df_filt = dfData[(dfData['provincia'] == provincia_seleccionada) & 
+                (dfData['departamento'] == depto_seleccionado)]
     df_vars = load_vars("VARIABLES")
     df_final = pd.merge(df_filt, df_vars, on='periodo', how='inner')
 
@@ -5376,10 +5514,11 @@ def df_base(dfData, cultivo_seleccionado, provincia_seleccionada):
     
     return df_final, df_finalVarNro, df_finalEscalar
 
-def rf_cargaEDA(dfData, cultivo_seleccionado, provincia_seleccionada, btnRadioDatos):
-# Obtenemos los datos técnicos primero
-    df_final, df_nro, df_esc = df_base(dfData, cultivo_seleccionado, provincia_seleccionada)
-    
+def rf_cargaEDA(dfData, cultivo_seleccionado, provincia_seleccionada, 
+                depto_seleccionado, btnRadioDatos):
+    # Obtenemos los datos técnicos primero
+    df_final, df_nro, df_esc = df_base(dfData, cultivo_seleccionado, provincia_seleccionada,
+                                       depto_seleccionado)    
     if df_final is None: return None
 
     # Aplicamos la estética (Renombrar)
@@ -5395,139 +5534,534 @@ def rf_cargaEDA(dfData, cultivo_seleccionado, provincia_seleccionada, btnRadioDa
     # Retorno completo para las tablas del EDA
     return df_visible, df_final, df_vis_sel
 
-def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada, btnRadioDatos):
-    #1. Obtenemos los datos técnicos primero
-    df_final, df_nro, df_esc = df_base(dfData, cultivo_seleccionado, provincia_seleccionada)
-    
-    if df_final is None: return "Faltan datos para procesar."
+'''
+def rf_cargaPredecir(
+    dfData,
+    cultivo_seleccionado,
+    provincia_seleccionada,
+    depto_seleccionado,
+    indicador_seleccionado,
+    btnRadioDatos,
+):
 
-    #2. Seleccionar Dataset para el RandomForest
+    # 1. Obtenemos los datos técnicos primero
+    df_final, df_nro, df_esc = df_base(
+        dfData,
+        cultivo_seleccionado,
+        provincia_seleccionada,
+        depto_seleccionado,
+    )
+
+    if df_final is None:
+        return "Faltan datos para procesar."
+
+    # 2. Seleccionar Dataset para el RandomForest
     df_trabajo = df_nro if btnRadioDatos == "Originales (Numéricos)" else df_esc
-    
+
+    # Asegurar que la columna periodo sea explícitamente de tipo numérico entero
+    df_trabajo["periodo"] = pd.to_numeric(
+        df_trabajo["periodo"], errors="coerce"
+    ).astype(int)
+
+    # DETERMINACIÓN DETERMINISTA DEL ÚLTIMO AÑO HISTÓRICO REAL
+    # Se extrae inmediatamente para evitar contaminación por mutaciones o concatenaciones
+    ultimo_anio_historico = int(df_trabajo["periodo"].max())
+
     # 3. Preparar X e y
     # Eliminamos 'periodo' y cualquier otra columna no predictora que haya quedado
-    target = 'rend_kgxha'
+    # target = 'rend_kgxha'
+    # Mapeo de nombres cortos a columnas internas del dataset
+    dict_ncortos = {
+        "Sup.Semb.[ha]": "sup_sem_ha",
+        "Sup.Cos.[ha]": "sup_cos_ha",
+        "Rend.[kg/ha]": "rend_kgxha",
+        "Prod.[ton]": "prod_ton",
+    }
+    indicador = dict_ncortos.get(
+        indicador_seleccionado, indicador_seleccionado
+    )
+    target = indicador
     if target not in df_trabajo.columns:
         return None, f"Error: No se encontró la columna objetivo '{target}'."
 
-    X = df_trabajo.drop(columns=[target, 'periodo'], errors='ignore')
+    unidad_ind = {
+        "Sup.Semb.[ha]": " ha",
+        "Sup.Cos.[ha]": " ha",
+        "Rend.[kg/ha]": " kg/ha",
+        "Prod.[ton]": " ton",
+    }
+    unidad = unidad_ind.get(indicador_seleccionado, "")
+
+    X = df_trabajo.drop(columns=[target, "periodo"], errors="ignore")
     y = df_trabajo[target]
 
     # 4. Dividir datos y Entrenar
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
     # 5. Predicción y Métricas
     predicciones = model.predict(X_test)
+    mse = mean_squared_error(y_test, predicciones)
     mae = mean_absolute_error(y_test, predicciones)
     r2 = r2_score(y_test, predicciones)
 
     # 6. IMPORTANCIA DE VARIABLES
     importancias = model.feature_importances_
-    df_imp = pd.DataFrame({
-        'Variable_Tecnica': X.columns,
-        'Importancia': importancias
-    }).sort_values(by='Importancia', ascending=True) # Ascendente para el gráfico de barras horizontal
+    df_imp = pd.DataFrame(
+        {"Variable_Tecnica": X.columns, "Importancia": importancias}
+    ).sort_values(
+        by="Importancia", ascending=True
+    )  # Ascendente para el gráfico de barras horizontal
 
     # Traducir nombres técnicos a "lindos" para el gráfico usando tu dict_ncortos
-    df_imp['Variable'] = df_imp['Variable_Tecnica'].apply(lambda x: dict_ncortos.get(x, x).upper())
+    df_imp["Variable"] = df_imp["Variable_Tecnica"].apply(
+        lambda x: dict_ncortos.get(x, x).upper()
+    )
 
     # 7. CREAR GRÁFICO (Plotly es ideal para Gradio)
     fig = px.bar(
-        df_imp.tail(15), # Mostramos las 15 más importantes
-        x='Importancia', 
-        y='Variable',
-        orientation='h',
-        title=f"Variables más influyentes: {cultivo_seleccionado} ({provincia_seleccionada})",
-        labels={'Importancia': 'Nivel de Influencia', 'Variable': 'Factor'},
-        color='Importancia',
-        color_continuous_scale='Greens'
+        df_imp.tail(15),  # Mostramos las 15 más importantes
+        x="Importancia",
+        y="Variable",
+        orientation="h",
+        title=(
+            f"VARIABLES MÁS INFLUYENTES PARA"
+            f" {indicador_seleccionado.upper()} DE"
+            f" {cultivo_seleccionado.upper()} EN"
+            f" {provincia_seleccionada.upper()} - {depto_seleccionado.upper()}"
+        ),
+        labels={"Importancia": "Nivel de Influencia", "Variable": "Factor"},
+        color="Importancia",
+        color_continuous_scale="Greens",
     )
     fig.update_layout(showlegend=False)
 
     # 8. TEXTO DE RESUMEN
-    texto_resumen = f"""
-    ### 📊 Resultados del Modelo (Random Forest)
-    - **Dataset utilizado:** {btnRadioDatos}
-    - **Error Medio Absoluto (MAE):** {mae:,.2f} Kg/Ha
-    - **Precisión (R² Score):** {r2:.4f}
-    
-    *El MAE indica que, en promedio, el modelo se equivoca por {mae:,.2f} kilos por hectárea.*
-    """
-    
+    texto_resumen = (
+        f"DATASET UTILIZADO: {btnRadioDatos}<br>"
+        f"Error Cuadrático Medio (MSE): {mse:.2f}<br>"
+        f"Error Medio Absoluto (MAE): {mae:.2f}<br>"
+        f"Precisión (R² Score):: {r2:.4f}<br>"
+        f"El MAE indica que, en promedio, el modelo se equivoca por"
+        f" {mae:.2f} unidades."
+    )
+
     # 9. Crear un DataFrame con los resultados del Test
     # Recuperamos el 'periodo' para las filas que se usaron en el Test
     indices_test = X_test.index
-    periodos_test = df_trabajo.loc[indices_test, 'periodo']
+    periodos_test = df_trabajo.loc[indices_test, "periodo"]
 
-    df_resultados = pd.DataFrame({
-        'Año': periodos_test,
-        'Real': y_test.values,
-        'Prediccion': predicciones
-    })
+    df_resultados = pd.DataFrame(
+        {"Año": periodos_test, "Real": y_test.values, "Prediccion": predicciones}
+    )
 
     # 10. AGRUPAR POR AÑO
     # Esto promedia los rendimientos si hay varios registros por año
-    df_anual = df_resultados.groupby('Año').agg({
-        'Real': 'mean',
-        'Prediccion': 'mean'
-    }).reset_index()
+    df_anual = (
+        df_resultados.groupby("Año")
+        .agg({"Real": "mean", "Prediccion": "mean"})
+        .reset_index()
+    )
 
     # 11. Cálculos de error sobre el promedio anual
-    df_anual['Error Absoluto (Kg)'] = (df_anual['Real'] - df_anual['Prediccion']).abs().round(2)
-    df_anual['Precisión %'] = (100 - (df_anual['Error Absoluto (Kg)'] / df_anual['Real'] * 100)).round(2)
-    
+    df_anual["Error Absoluto"] = (
+        (df_anual["Real"] - df_anual["Prediccion"]).abs().round(2)
+    )
+    df_anual["Precisión %"] = (
+        100 - (df_anual["Error Absoluto"] / df_anual["Real"] * 100)
+    ).round(2)
+
     # Redondear valores principales
-    df_anual['Real'] = df_anual['Real'].round(2)
-    df_anual['Prediccion'] = df_anual['Prediccion'].round(2)
+    df_anual["Real"] = df_anual["Real"].round(2)
+    df_anual["Prediccion"] = df_anual["Prediccion"].round(2)
 
     # Ordenar cronológicamente
-    df_anual = df_anual.sort_values(by='Año', ascending=False)
+    df_anual = df_anual.sort_values(by="Año", ascending=False)
 
-    #12. GRAFICO PREDICCION
+    # Predicción para los próximos 5 años
+    # Uso de la variable aislada ultimo_anio_historico
+    anios_futuros = [ultimo_anio_historico + i for i in range(1, 6)]
+
+    # 2. Construir el vector de características futuras basadas en la tendencia reciente
+    # Se toma el promedio de los últimos 3 años para cada variable predictora en X
+    ultimos_periodos = np.sort(df_trabajo["periodo"].unique())[-3:]
+    X_reciente = df_trabajo[df_trabajo["periodo"].isin(ultimos_periodos)].drop(
+        columns=[target, "periodo"], errors="ignore"
+    )
+    vector_futuro = X_reciente.mean(axis=0).to_frame().T
+
+    # 3. Replicar la estructura predictora para los 5 años futuros
+    X_futuro = pd.concat([vector_futuro] * 5, ignore_index=True)
+
+    # 4. Inferencia con el Random Forest reentrenado o ajustado sobre X
+    predicciones_futuras = model.predict(X_futuro)
+
+    # 5. Asignar los valores predichos con formato de dos decimales a las variables individuales
+    pred1_text = f"{predicciones_futuras[0]:.2f}" + unidad
+    pred2_text = f"{predicciones_futuras[1]:.2f}" + unidad
+    pred3_text = f"{predicciones_futuras[2]:.2f}" + unidad
+    pred4_text = f"{predicciones_futuras[3]:.2f}" + unidad
+    pred5_text = f"{predicciones_futuras[4]:.2f}" + unidad
+
+    # 12. GRAFICO PREDICCION
     figPrediccion = go.Figure()
     # Línea Azul (Valor Actual/Real)
-    figPrediccion.add_trace(go.Scatter(
-        x=df_anual['Año'], 
-        y=df_anual['Real'],
-        mode='lines+markers',
-        name='Actual',
-        line=dict(color='blue', width=2),
-        marker=dict(symbol='circle', size=6)
-    ))
-    # Línea Roja Punteada (Predicción del Modelo)
-    figPrediccion.add_trace(go.Scatter(
-        x=df_anual['Año'], 
-        y=df_anual['Prediccion'],
-        mode='lines+markers',
-        name='Predicho (RF)',
-        line=dict(color='red', width=2, dash='dash'),
-        marker=dict(symbol='circle', size=6)
-    ))
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=df_anual["Año"],
+            y=df_anual["Real"],
+            mode="lines+markers",
+            name="Actual",
+            line=dict(color="blue", width=2),
+            marker=dict(symbol="circle", size=6),
+        )
+    )
+    # Línea Roja Punteada (Predicción del Modelo sobre Test)
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=df_anual["Año"],
+            y=df_anual["Prediccion"],
+            mode="lines+markers",
+            name="Predicho (RF)",
+            line=dict(color="red", width=2, dash="dash"),
+            marker=dict(symbol="circle", size=6),
+        )
+    )
+
+    # Trazado adicional: Proyección a 5 años futuros
+    # Unir el último punto de la serie predicha con el primer año proyectado para mantener la continuidad visual
+    ultimo_registro_anual = df_anual.sort_values("Año").iloc[-1]
+    x_proyeccion = [ultimo_registro_anual["Año"]] + anios_futuros
+    y_proyeccion = [ultimo_registro_anual["Prediccion"]] + list(
+        np.round(predicciones_futuras, 2)
+    )
+
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=x_proyeccion,
+            y=y_proyeccion,
+            mode="lines+markers",
+            name="Proyección (5 años)",
+            line=dict(color="orange", width=2, dash="dot"),
+            marker=dict(symbol="diamond", size=7),
+        )
+    )
+
     # Estética idéntica a tu imagen
     figPrediccion.update_layout(
-        title=f"BOSQUES ALEATORIOS: REND.[KG/HA] - {provincia_seleccionada.upper()} ({cultivo_seleccionado.upper()})",
+        title=(
+            f"PREDICCIÓN DE {indicador_seleccionado.upper()} -"
+            f" {cultivo_seleccionado.upper()} EN"
+            f" {provincia_seleccionada.upper()} - {depto_seleccionado.upper()}"
+        ),
         xaxis_title="Año",
-        yaxis_title="Rend.[kg/ha]",
-        plot_bgcolor='white',
+        yaxis_title=f"{indicador_seleccionado}",
+        plot_bgcolor="white",
         hovermode="x",
-        legend=dict(orientation="v", yanchor="top", y=1, xanchor="right", x=1.15)
+        legend=dict(
+            # orientation="v", yanchor="top", y=1, xanchor="right", x=1.15
+            orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5
+        ),
     )
-    # Añadir cuadrícula 
-    figPrediccion.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#f0f0f0')
-    figPrediccion.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#f0f0f0')
-    return fig, texto_resumen, figPrediccion, df_anual
+    # Añadir cuadrícula
+    figPrediccion.update_xaxes(showgrid=True, gridwidth=1, gridcolor="#f0f0f0")
+    figPrediccion.update_yaxes(showgrid=True, gridwidth=1, gridcolor="#f0f0f0")
+
+    # Obtenemos el total real de filas del dataset completo de trabajo (Entrenamiento + Prueba)
+    total_registros = len(df_trabajo)
+
+    # MODIFICACIONES SOBRE df_anual:
+    # 1. Anexar las predicciones futuras a la tabla df_anual.
+    # 2. Asignar '---' a la columna 'Real' para los años proyectados.
+    # 3. Ordenar cronológicamente en orden ascendente por la columna 'Año'.
+
+    # Construcción de la estructura temporal con las predicciones futuras
+    df_futuro = pd.DataFrame(
+        {
+            "Año": anios_futuros,
+            "Real": "---",
+            "Prediccion": np.round(predicciones_futuras, 2),
+            "Error Absoluto": "---",
+            "Precisión %": "---",
+        }
+    )
+
+    # Asegurar la conversión de la columna 'Real' de df_anual a string para evitar conflictos de tipo de dato
+    df_anual["Real"] = df_anual["Real"].astype(str)
+
+    # Concatenación de la serie histórica agrupada con las proyecciones a 5 años
+    df_anual = pd.concat([df_anual, df_futuro], ignore_index=True)
+
+    # Ordenamiento cronológico ascendente (desde el año más antiguo hasta el último proyectado)
+    df_anual = df_anual.sort_values(by="Año", ascending=True).reset_index(
+        drop=True
+    )
+
+    serie_text = f"{total_registros} años"
+    mse_text = f"MSE = {mse:.2f}"
+    mae_text = f"MAE = {mae:.2f}"
+    r2_text = f"R² = {r2:.4f}"
+
+    return (fig, texto_resumen, figPrediccion, df_anual,
+        cultivo_seleccionado, provincia_seleccionada, depto_seleccionado,
+        indicador_seleccionado.upper(), serie_text, mse_text, mae_text, r2_text,
+        pred1_text, pred2_text, pred3_text, pred4_text,pred5_text,
+    )
+    '''
+def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
+    depto_seleccionado, indicador_seleccionado, btnRadioDatos):
+
+    # 1. Obtener datos base según selección
+    df_final, df_nro, df_esc = df_base(dfData, cultivo_seleccionado,
+                                provincia_seleccionada, depto_seleccionado)
+
+    if df_final is None:
+        return "Faltan datos para procesar."
+
+    # 2. Seleccionar el DataFrame de trabajo (Originales o Escalados)
+    df_trabajo = (
+        df_nro if btnRadioDatos == "Originales (Numéricos)" else df_esc
+    ).copy()
+
+    # Sanitizar y castear la columna 'periodo' a tipo entero explícito
+    df_trabajo["periodo"] = pd.to_numeric(
+        df_trabajo["periodo"], errors="coerce"
+    ).astype(int)
+
+    # EXTRACTION DETERMINISTA DEL ÚLTIMO AÑO HISTÓRICO REAL
+    # Se obtienen los periodos únicos, se ordenan de forma ascendente y se toma el último escalar
+    periodos_historicos_unicos = np.sort(df_trabajo["periodo"].unique())
+    ultimo_anio_historico = int(periodos_historicos_unicos[-1])
+
+    # 3. Mapeo de indicadores y definición de la variable objetivo (target)
+    dict_ncortos = {
+        "Sup.Semb.[ha]": "sup_sem_ha",
+        "Sup.Cos.[ha]": "sup_cos_ha",
+        "Rend.[kg/ha]": "rend_kgxha",
+        "Prod.[ton]": "prod_ton",
+    }
+    indicador = dict_ncortos.get(
+        indicador_seleccionado, indicador_seleccionado
+    )
+    target = indicador
+
+    if target not in df_trabajo.columns:
+        return None, f"Error: No se encontró la columna objetivo '{target}'."
+
+    unidad_ind = {
+        "Sup.Semb.[ha]": " ha",
+        "Sup.Cos.[ha]": " ha",
+        "Rend.[kg/ha]": " kg/ha",
+        "Prod.[ton]": " ton",
+    }
+    unidad = unidad_ind.get(indicador_seleccionado, "")
+
+    # Separación de características (X) y variable objetivo (y)
+    X = df_trabajo.drop(columns=[target, "periodo"], errors="ignore")
+    y = df_trabajo[target]
+
+    # 4. División de datos (Train / Test) y entrenamiento del Random Forest
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # 5. Evaluación de métricas
+    predicciones = model.predict(X_test)
+    mse = mean_squared_error(y_test, predicciones)
+    mae = mean_absolute_error(y_test, predicciones)
+    r2 = r2_score(y_test, predicciones)
+
+    # 6. Cálculo de importancia de variables para la métrica
+    importancias = model.feature_importances_
+    df_imp = pd.DataFrame(
+        {"Variable_Tecnica": X.columns, "Importancia": importancias}
+    ).sort_values(by="Importancia", ascending=True)
+
+    df_imp["Variable"] = df_imp["Variable_Tecnica"].apply(
+        lambda x: dict_ncortos.get(x, x).upper()
+    )
+
+    # 7. Gráfico de Barras Horizontales - Importancia de Factores
+    fig = px.bar(
+        df_imp.tail(15),
+        x="Importancia",
+        y="Variable",
+        orientation="h",
+        title=(
+            f"VARIABLES MÁS INFLUYENTES PARA "
+            f"{indicador_seleccionado.upper()} DE "
+            f"{cultivo_seleccionado.upper()} EN "
+            f"{provincia_seleccionada.upper()} - {depto_seleccionado.upper()}"
+        ),
+        labels={"Importancia": "Nivel de Influencia", "Variable": "Factor"},
+        color="Importancia",
+        color_continuous_scale="Greens",
+    )
+    fig.update_layout(showlegend=False)
+
+    # 8. Construcción del texto de resumen cuantitativo
+    texto_resumen = (
+        f"DATASET UTILIZADO: {btnRadioDatos}<br>"
+        f"Error Cuadrático Medio (MSE): {mse:.2f}<br>"
+        f"Error Medio Absoluto (MAE): {mae:.2f}<br>"
+        f"Precisión (R² Score): {r2:.4f}<br>"
+        f"El MAE indica que, en promedio, el modelo se equivoca por "
+        f"{mae:.2f} unidades."
+    )
+
+    # 9. Consolidación de Resultados de Test agrupados por año
+    indices_test = X_test.index
+    periodos_test = df_trabajo.loc[indices_test, "periodo"]
+
+    df_resultados = pd.DataFrame(
+        {"Año": periodos_test, "Real": y_test.values, "Prediccion": predicciones}
+    )
+
+    df_anual = (
+        df_resultados.groupby("Año")
+        .agg({"Real": "mean", "Prediccion": "mean"})
+        .reset_index()
+    )
+
+    # Métricas de error relativo porcentual por año
+    df_anual["Error Absoluto"] = (
+        (df_anual["Real"] - df_anual["Prediccion"]).abs().round(2)
+    )
+    df_anual["Precisión %"] = (
+        100 - (df_anual["Error Absoluto"] / df_anual["Real"] * 100)
+    ).round(2)
+
+    df_anual["Real"] = df_anual["Real"].round(2)
+    df_anual["Prediccion"] = df_anual["Prediccion"].round(2)
+
+    # 10. GENERACIÓN DE LA PROYECCIÓN A 5 AÑOS FUTUROS
+    # Se genera el rango garantizando que el primer año futuro sea (ultimo_anio_historico + 1)
+    anios_futuros = [ultimo_anio_historico + i for i in range(1, 6)]
+
+    # Se toma la media del perfil de variables de los últimos 3 años históricos como baseline de predicción
+    ultimos_periodos = periodos_historicos_unicos[-3:]
+    X_reciente = df_trabajo[df_trabajo["periodo"].isin(ultimos_periodos)].drop(
+        columns=[target, "periodo"], errors="ignore"
+    )
+    vector_futuro = X_reciente.mean(axis=0).to_frame().T
+
+    # Replicación del vector para los 5 períodos proyectados
+    X_futuro = pd.concat([vector_futuro] * 5, ignore_index=True)
+    predicciones_futuras = model.predict(X_futuro)
+
+    # Formateo de las cadenas de texto para cada una de las 5 predicciones
+    pred1_text = f"{predicciones_futuras[0]:.2f}" + unidad
+    pred2_text = f"{predicciones_futuras[1]:.2f}" + unidad
+    pred3_text = f"{predicciones_futuras[2]:.2f}" + unidad
+    pred4_text = f"{predicciones_futuras[3]:.2f}" + unidad
+    pred5_text = f"{predicciones_futuras[4]:.2f}" + unidad
+
+    # 11. Gráfico de Serie Temporal y Proyección Futura
+    figPrediccion = go.Figure()
+
+    # Serie Histórica Real
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=df_anual["Año"],
+            y=df_anual["Real"],
+            mode="lines+markers",
+            name="Actual",
+            line=dict(color="blue", width=2),
+            marker=dict(symbol="circle", size=6),
+        )
+    )
+
+    # Serie Predicha (Test)
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=df_anual["Año"],
+            y=df_anual["Prediccion"],
+            mode="lines+markers",
+            name="Predicho (RF)",
+            line=dict(color="red", width=2, dash="dash"),
+            marker=dict(symbol="circle", size=6),
+        )
+    )
+
+    # Serie de Proyección a 5 Años
+    ultimo_registro_anual = df_anual.sort_values("Año").iloc[-1]
+    x_proyeccion = [ultimo_registro_anual["Año"]] + anios_futuros
+    y_proyeccion = [ultimo_registro_anual["Prediccion"]] + list(
+        np.round(predicciones_futuras, 2)
+    )
+
+    figPrediccion.add_trace(
+        go.Scatter(
+            x=x_proyeccion,
+            y=y_proyeccion,
+            mode="lines+markers",
+            name="Proyección (5 años)",
+            line=dict(color="orange", width=2, dash="dot"),
+            marker=dict(symbol="diamond", size=7),
+        )
+    )
+
+    figPrediccion.update_layout(
+        title=(
+            f"PREDICCIÓN DE {indicador_seleccionado.upper()} - "
+            f"{cultivo_seleccionado.upper()} EN "
+            f"{provincia_seleccionada.upper()} - {depto_seleccionado.upper()}"
+        ),
+        xaxis_title="Año",
+        yaxis_title=f"{indicador_seleccionado}",
+        plot_bgcolor="white",
+        hovermode="x",
+        legend=dict(
+            orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5
+        ),
+    )
+    figPrediccion.update_xaxes(showgrid=True, gridwidth=1, gridcolor="#f0f0f0")
+    figPrediccion.update_yaxes(showgrid=True, gridwidth=1, gridcolor="#f0f0f0")
+
+    # 12. Construcción e Integración del DataFrame Futuro
+    df_futuro = pd.DataFrame(
+        {
+            "Año": anios_futuros,
+            "Real": "---",
+            "Prediccion": np.round(predicciones_futuras, 2),
+            "Error Absoluto": "---",
+            "Precisión %": "---",
+        }
+    )
+
+    # Conteo de la cantidad de años históricos reales procesados
+    total_anios_historicos = len(periodos_historicos_unicos)
+    serie_text = f"{total_anios_historicos} años"
+
+    # Concatenación final de datos históricos con proyectados para la tabla final
+    df_anual["Real"] = df_anual["Real"].astype(str)
+    df_anual = pd.concat([df_anual, df_futuro], ignore_index=True)
+    df_anual = df_anual.sort_values(by="Año", ascending=True).reset_index(
+        drop=True
+    )
+
+    # Formateo de métricas textuales para retorno
+    mse_text = f"MSE = {mse:.2f}"
+    mae_text = f"MAE = {mae:.2f}"
+    r2_text = f"R² = {r2:.4f}"
+
+    return (fig, texto_resumen, figPrediccion, df_anual,
+        cultivo_seleccionado, provincia_seleccionada, depto_seleccionado,
+        indicador_seleccionado.upper(), serie_text, mse_text, mae_text, r2_text,
+        pred1_text, pred2_text, pred3_text, pred4_text, pred5_text
+    )
+
+# endregion FUNCIONES PARA LA PESTAÑA "BOSQUES ALEATORIOS" (YAEL)
 
 
-# #################################################################
-# endregion  FUNCIONES PARA LA PESTAÑA "BOSQUES ALEATORIOS" 
-# YAE: ############################################################
-
-
-# comienzo prg MAF
-# --- FUNCIONES PARA LA PESTAÑA "REDES NEURONALES" ---
+# region FUNCIONES PARA LA PESTAÑA "REDES NEURONALES" (MARCO)
 def get_timeline_nn(df, provincia=None, departamento=None):
     if df.empty:
         return "Sin años disponibles"
@@ -5545,9 +6079,17 @@ def get_timeline_nn(df, provincia=None, departamento=None):
     if not years:
         return "<span style='color: red;'>Sin años disponibles</span>"
     
+    '''
     return f"<div style='background-color: #f8f9fa; padding: 10px; border-radius: 8px; border-left: 5px solid #1f77b4; margin-bottom: 15px;'>" \
            f"<span style='color: #666; font-size: 0.9em; text-transform: uppercase;'>Línea de Tiempo</span><br>" \
            f"<b style='color: #1f77b4; font-size: 1.1em;'>Años disponibles: {years[0]} - {years[-1]}</b> <small>({len(years)} registros)</small></div>"
+    '''
+    return (
+        # f"<div class='custom-tab-3'>"
+        f"<b>AÑOS DE LA SERIE: {years[0]} - {years[-1]}</b> "
+        f"<b>({len(years)} REGISTROS)</b>"
+        f"</div>"
+    )
 
 def tab_NN_on_crop_change(dataset_type):
     df, provincias = load_data(dataset_type)
@@ -5587,71 +6129,191 @@ def tab_NN_on_dept_change(dataset_type, provincia, departamento):
     return get_timeline_nn(df, provincia, departamento)
 
 def tab_NN_train_and_predict(dataset_type, provincia, departamento, indicador_nc, hidden_layers, max_iter):
-    df, _ = load_data(dataset_type)
-    if df.empty:
-        return "Error: Dataset no disponible", None, None
+
+    """
+    Entrena un Perceptrón Multicapa (MLP) utilizando covariables nacionales (climáticas,
+    macroeconómicas y sectoriales) para predecir un indicador agrícola.
+    Aplica Codificación Ordinal a fenómenos climáticos y One-Hot Encoding a variables políticas.
+    """
+    # Mapeo de nombres cortos a columnas internas del dataset
+    dict_ncortos = {
+        'Sup.Semb.[ha]': 'sup_sem_ha',
+        'Sup.Cos.[ha]': 'sup_cos_ha',
+        'Rend.[kg/ha]': 'rend_kgxha',
+        'Prod.[ton]': 'prod_ton'
+    }
+    indicador = dict_ncortos.get(indicador_nc, indicador_nc)
+
+    unidad_ind = {
+        'Sup.Semb.[ha]': ' ha',
+        'Sup.Cos.[ha]': ' ha',
+        'Rend.[kg/ha]': ' kg/ha',
+        'Prod.[ton]': ' ton'
+    }
+    unidad = unidad_ind.get(indicador_nc, "")
+
+    # Se filtra el dataset de cultivo
+    df_cultivo, provincias = load_data(dataset_type)
+    df_filtered = get_filtered_subset(df_cultivo, provincia, departamento, KEY_COLUMNS)
+    df_vars = load_vars("VARIABLES") # Se carga el df de variables externas
+    res_df = pd.merge(df_filtered, df_vars, on='periodo', how='left')
+
+    # Verificación de umbral de datos para series largas (50-100 años)
+    if res_df.empty or len(res_df) < 15:
+        return None, None, "Error: Registros insuficientes para entrenar la red (mínimo 15 años)."
+
+    # Ordenamiento cronológico indispensable para series de tiempo
+    res_df = res_df.sort_values('periodo').reset_index(drop=True)
     
-    # Obtener el nombre original de la columna
-    indicador = next((k for k, v in dict_ncortos.items() if v == indicador_nc), indicador_nc)
+    # 3. Definición de taxonomía de características (Features)
+    # Categorías ordinales con jerarquía explícita: 'no' < 'debil' < 'moderado' < 'fuerte' < 'muy fuerte'
+    nino_order = ['no', 'debil', 'moderado', 'fuerte', 'muy fuerte']
+    nina_order = ['no', 'debil', 'moderado', 'fuerte', 'muy fuerte']
     
-    # Filtrar datos
-    res_df = df[(df['provincia'] == provincia) & (df['departamento'] == departamento)].copy()
-    if res_df.empty or len(res_df) < 5:
-        return "Error: Datos insuficientes para entrenar (se requieren al menos 5 registros)", None, None
+    ordinal_cols = ['nino', 'nina']
+    nominal_cols = ['gobierno']
     
-    res_df = res_df.sort_values('periodo')
-    X = res_df[['periodo']].values
+    # Identificación de variables continuas exógenas (se excluye 'periodo' y metadatos)
+    # ignore_cols = ['cultivo', 'provincia', 'departamento', 'sup_sem_ha', 'sup_cos_ha', 'rend_kgxha', 'prod_ton', 'periodo']
+    num_cols = [c for c in df_vars.columns if c not in ordinal_cols + nominal_cols + ['periodo']]
+    
+    X = res_df[ordinal_cols + nominal_cols + num_cols]
     y = res_df[indicador].values
+
+    # 4. División Hold-Out Cronológica (los últimos 5 años se reservan para test fuera de muestra)
+    test_size = 5 if len(res_df) >= 20 else 3
+    X_train, X_test = X.iloc[:-test_size], X.iloc[-test_size:]
+    y_train, y_test = y[:-test_size], y[-test_size:]
     
-    # Escalamiento
-    scaler_X = StandardScaler()
+    # 5. Pipeline de Preprocesamiento Multinivel
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('ord', OrdinalEncoder(
+                categories=[nino_order, nina_order], 
+                handle_unknown='use_encoded_value', 
+                unknown_value=-1
+            ), ordinal_cols),
+            ('nom', OneHotEncoder(
+                drop='first', 
+                sparse_output=False, 
+                handle_unknown='ignore'
+            ), nominal_cols),
+            ('num', StandardScaler(), num_cols)
+        ]
+    )
+    
+    # Ajuste del preprocesador ÚNICAMENTE con datos de entrenamiento para evitar Data Leakage
+    X_train_proc = preprocessor.fit_transform(X_train)
+    X_test_proc = preprocessor.transform(X_test)
+    X_full_proc = preprocessor.transform(X)
+    
+    # Escalado de la variable objetivo Y
     scaler_y = StandardScaler()
-    X_scaled = scaler_X.fit_transform(X)
-    y_scaled = scaler_y.fit_transform(y.reshape(-1, 1)).flatten()
+    y_train_scaled = scaler_y.fit_transform(y_train.reshape(-1, 1)).flatten()
     
-    # Configuración de capas ocultas
+    # 6. Configuración de hiperparámetros y arquitectura de la Red Neuronal
     try:
         layers = tuple(map(int, hidden_layers.split(',')))
-    except:
-        layers = (100,)
+    except (ValueError, AttributeError):
+        layers = (16, 8) # Arquitectura contraída por defecto
+        
+    model = MLPRegressor(
+        hidden_layer_sizes=layers,
+        max_iter=int(max_iter),
+        activation='relu',
+        solver='lbfgs',      # Optimizador quasi-Newton, superior para N < 1000
+        alpha=0.1,           # Penalización L2 (Ridge) para mitigar sobreajuste
+        random_state=42
+    )
     
-    # Modelo
-    model = MLPRegressor(hidden_layer_sizes=layers, max_iter=int(max_iter), random_state=42)
-    model.fit(X_scaled, y_scaled)
+    # Entrenamiento
+    model.fit(X_train_proc, y_train_scaled)
     
-    # Predicción
-    y_pred_scaled = model.predict(X_scaled)
-    y_pred = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).flatten()
+    # 7. Generación de Predicciones y Desescalado
+    y_full_pred_scaled = model.predict(X_full_proc)
+    y_full_pred = scaler_y.inverse_transform(y_full_pred_scaled.reshape(-1, 1)).flatten()
     
-    # Métricas
-    r2 = r2_score(y, y_pred)
-    mse = mean_squared_error(y, y_pred)
+    y_test_pred_scaled = model.predict(X_test_proc)
+    y_test_pred = scaler_y.inverse_transform(y_test_pred_scaled.reshape(-1, 1)).flatten()
     
-    # Gráfico
+    # 8. Cálculo de Métricas de Generalización (Out-of-sample)
+    r2_test = r2_score(y_test, y_test_pred)
+    mse_test = mean_squared_error(y_test, y_test_pred)
+    
+    # 9. Construcción de la figura en Plotly
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res_df['periodo'], y=y, mode='lines+markers', name='Actual', line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=res_df['periodo'], y=y_pred, mode='lines+markers', name='Predicho (RN)', line=dict(color='red', dash='dash')))
+    
+    fig.add_trace(go.Scatter(
+        x=res_df['periodo'], y=y, 
+        mode='lines+markers', name='Valor Real',
+        line=dict(color='#1f77b4', width=2)
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=res_df['periodo'], y=y_full_pred, 
+        mode='lines+markers', name='Predicción Red Neuronal',
+        line=dict(color='#d62728', dash='dash', width=2)
+    ))
+    
+    # Sombreado de la zona de prueba (Out-of-sample)
+    fig.add_vrect(
+        x0=res_df['periodo'].iloc[-test_size] - 0.5, 
+        x1=res_df['periodo'].iloc[-1] + 0.5,
+        fillcolor="Gray", opacity=0.2, layer="below", line_width=0,
+        annotation_text="Predicción", annotation_position="top left"
+    )
     
     fig.update_layout(
-        title=f"RED NEURONAL: {indicador_nc.upper()} - {provincia} ({departamento})",
+        title=f"{indicador_nc.upper()} - {provincia} ({departamento})",
         xaxis_title="Año",
         yaxis_title=indicador_nc,
         template="plotly_white",
-        height=450
+        height=500,  # Se incrementa ligeramente el alto para compensar el espacio de la leyenda inferior
+        autosize=True,  # Permite redimensionamiento automático según el contenedor HTML/CSS
+        margin=dict(l=40, r=40, t=60, b=80),  # Reducción de márgenes laterales internos
+        legend=dict(
+            orientation="h",     # Orientación horizontal de los elementos
+            yanchor="top",       # Ancla superior para desplazar hacia abajo
+            y=-0.2,              # Posición en el eje Y (valores negativos la colocan bajo el eje X)
+            xanchor="center",    # Ancla central horizontal
+            x=0.5                # Posición en el eje X (0.5 centra la leyenda)
+        )
     )
     
-    stats_text = f"<b>Métricas del Modelo:</b><br>R²: {r2:.4f}<br>MSE: {mse:.4f}"
+    stats_text = (
+        # f"<div class='custom-tab-3'>"
+        f"<b>MÉTRICAS DEL CONJUNTO DE PRUEBA (Últimos {test_size} años):</b><br>"
+        f"R²: {r2_test:.4f}<br>"
+        f"MSE: {mse_test:.4f}<br>"
+        f"Dimensión de características codificadas (X): {X_train_proc.shape[1]}"
+    )
     
-    # Tabla de resultados
     results_df = pd.DataFrame({
         "Año": res_df['periodo'],
         "Valor Real": y,
-        "Valor Predicho": y_pred.round(2)
+        "Valor Predicho": y_full_pred.round(2),
+        "Conjunto": ["Entrenamiento"] * (len(y) - test_size) + ["Prueba"] * test_size
     })
-    
-    return stats_text, fig, results_df
-# fin prg MAF
+    # Formateo explícito de la columna a String con dos decimales fijos (ej. 14.50)
+    results_df["Valor Predicho"] = results_df["Valor Predicho"].map("{:.2f}".format)
+    # Selección de los últimos 5 valores de la columna "Valor Predicho"
+    # Se aplica el método .tail(5) y se convierte a lista nativa de Python con .tolist()
+    ult_5_pred = results_df["Valor Predicho"].tail(5).tolist()
 
+    serie_text = f"{len(res_df)} años"
+    mse_text = f"MSE = {mse_test:.2f}"
+    mae_text = f"MAE = {mean_absolute_error(y_test, y_test_pred):.2f}"
+    r2_text = f"R² = {r2_test:.4f}"
+    return (stats_text, fig, results_df, 
+            dataset_type, provincia, departamento, indicador_nc.upper(),
+            serie_text, mse_text, mae_text, r2_text,
+            ult_5_pred[0] + unidad, ult_5_pred[1] + unidad,
+            ult_5_pred[2] + unidad, ult_5_pred[3] + unidad, ult_5_pred[4] + unidad)
+
+# endregion FUNCIONES PARA LA PESTAÑA "REDES NEURONALES" (MARCO)
+
+
+# region FUNCIONES PARA LA PESTAÑA "DASHBOARD" (MARCO)
 # comienzo prg MAF
 def normalize_str(s):
     if not isinstance(s, str): return ""
@@ -5904,7 +6566,6 @@ def tab_Dashboard_update_map(df, indicador, top_n, cultivo):
 
     return fig
 
-
 def tab_Dashboard_update_charts(df, indicador, top_n):
     if df.empty:
         return None, None
@@ -5948,7 +6609,6 @@ def tab_Dashboard_update_charts(df, indicador, top_n):
     
     return fig_pie, fig_evo
 
-
 def tab_Dashboard_on_cultivo_change(cultivo):
     df, provincias = load_data(cultivo)
     
@@ -5962,7 +6622,6 @@ def tab_Dashboard_on_cultivo_change(cultivo):
            gr.update(choices=["Todos"], value="Todos"), \
            gr.update(minimum=year_min, maximum=year_max, value=year_min), \
            gr.update(minimum=year_min, maximum=year_max, value=year_max)
-
 
 def tab_Dashboard_on_provincia_change(cultivo, provincia):
     df, _ = load_data(cultivo)
@@ -5991,8 +6650,82 @@ def tab_Dashboard_run(cultivo, provincia, departamento, year_min, year_max, indi
     
     return summary, fig_map, fig_pie, fig_evo
 
-
 # fin prg MAF
+# endregion FUNCIONES PARA LA PESTAÑA "DASHBOARD"
+
+
+# region FUNCIONES PARA LA PESTAÑA "CONCLUSIONES"
+def tab_CONC_show_conclusions(*args):
+    """
+    Consolida las variables de estado de los cinco modelos recibidas en un DataFrame de Pandas:
+    ARIMA 1, ARIMA 2, ARIMA 3, Random Forest, Neural Network.
+    Cada modelo aporta 9 métricas/variables y 5 valores predichos del indicador agrícola.
+    *args: recibe un unpacking de los 70 componentes gr.State de manera secuencial.
+    Returns: un pd.DataFrame de métricas (matriz de 9 filas x 5 columnas lista para gr.Dataframe);
+             un pd.DataFrame de predicciones (matriz de 5 filas x 5 columnas lista para gr.Dataframe);
+    """
+
+    ### TABLA DE MÉTRICAS
+    # Definición de las 9 filas (métricas/variables) y 5 columnas (modelos)
+    filas_labels_tabla1 = [
+        "Tipo de Predicción", "Cultivo", "Provincia", "Departamento/Zona",
+        "Indicador Agrícola", "Serie", "Métrica 1", "Métrica 2", "Métrica 3"
+    ]
+    columnas_labels_tabla1 = ["ARIMA-1", "ARIMA-2", "ARIMA-3", "BOSQUE ALEATORIO", "RED NEURONAL"]
+
+    # Separación sintáctica de los 45 argumentos recibidos en bloques de 9 para cada modelo
+    # args contiene [v1, v2, ..., v70]
+    arima1_tabla1 = args[0:9]
+    arima2_tabla1 = args[9:18]
+    arima3_tabla1 = args[18:27]
+    rf_tabla1     = args[27:36]
+    nn_tabla1     = args[36:45]
+
+    # Construcción de la matriz estructurada por columnas
+    data = {
+        columnas_labels_tabla1[0]: arima1_tabla1,
+        columnas_labels_tabla1[1]: arima2_tabla1,
+        columnas_labels_tabla1[2]: arima3_tabla1,
+        columnas_labels_tabla1[3]: rf_tabla1,
+        columnas_labels_tabla1[4]: nn_tabla1
+    }
+
+    # Creación del DataFrame asignando los índices requeridos (9 filas)
+    df_metricas = pd.DataFrame(data, index=filas_labels_tabla1)
+    # Reinicio del índice para que la columna de métricas sea visible en el componente gr.Dataframe
+    df_metricas = df_metricas.reset_index().rename(columns={"index": "Cultivo/Métrica"})
+
+    ## TABLA DE PREDICCIONES
+    # Definición de las 5 filas (valores predichos) y 5 columnas (modelos)
+    filas_labels_tabla2 = [
+        "1", "2", "3", "4", "5"
+    ]
+    columnas_labels_tabla2 = ["ARIMA-1", "ARIMA-2", "ARIMA-3", "BOSQUE ALEATORIO", "RED NEURONAL"]
+
+    # Separación sintáctica de los 25 argumentos recibidos en bloques de 5 para cada modelo
+    arima1_tabla2 = args[45:50]
+    arima2_tabla2 = args[50:55]
+    arima3_tabla2 = args[55:60]
+    rf_tabla2     = args[60:65]
+    nn_tabla2     = args[65:70]
+
+    # Construcción de la matriz estructurada por columnas
+    data = {
+        columnas_labels_tabla2[0]: arima1_tabla2,
+        columnas_labels_tabla2[1]: arima2_tabla2,
+        columnas_labels_tabla2[2]: arima3_tabla2,
+        columnas_labels_tabla2[3]: rf_tabla2,
+        columnas_labels_tabla2[4]: nn_tabla2
+    }
+
+    # Creación del DataFrame asignando los índices requeridos (5 filas)
+    df_predicciones = pd.DataFrame(data, index=filas_labels_tabla2)
+    # Reinicio del índice para que la columna de métricas sea visible en el componente gr.Dataframe
+    df_predicciones = df_predicciones.reset_index().rename(columns={"index": "Próximos 5 Años"})
+
+    return df_metricas, df_predicciones
+
+# endregion para la pestaña "CONCLUSIONES"
 
 
 
@@ -6039,13 +6772,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
     ARIMA_q_3 = gr.State(value=NO_EXISTE)
     # Almacenamiento de los tres datasets con valores históricos y predichos con ARIMA
     # CUIDADO: no es un dataset completo, solo tiene PERIODO y la variable (VALOR) que se esté analizando
-    # No es un dataset filtrado que tenga CULTIVO, PROVINCIA y DEPARTAMENTO
+    # No es un dataset filtrado que tenga CULTIVO, PROVINCIA y DEPARTAMENTO/ZONA
     dataset_ARIMA_state_1 = gr.State(pd.DataFrame())
     dataset_ARIMA_state_2 = gr.State(pd.DataFrame())
     dataset_ARIMA_state_3 = gr.State(pd.DataFrame())
     # Almacenamiento de los tres datasets con valores históricos y predichos con AUTO-ARIMA
     # CUIDADO: no es un dataset completo, solo tiene PERIODO y la variable (VALOR) que se esté analizando
-    # No es un dataset filtrado que tenga CULTIVO, PROVINCIA y DEPARTAMENTO
+    # No es un dataset filtrado que tenga CULTIVO, PROVINCIA y DEPARTAMENTO/ZONA
     dataset_AUTO_ARIMA_state_1 = gr.State(pd.DataFrame())
     dataset_AUTO_ARIMA_state_2 = gr.State(pd.DataFrame())
     dataset_AUTO_ARIMA_state_3 = gr.State(pd.DataFrame())
@@ -6057,16 +6790,83 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
     estacionalidad = gr.State(3)
     residuos = gr.State(4)
     periodograma = gr.State(5)
+    # Valores para la tabla final de conclusiones
+    ARI1_cultivo = gr.State(value="---")
+    ARI1_provincia = gr.State(value="---")
+    ARI1_departamento = gr.State(value="---")
+    ARI1_indicador = gr.State(value="---")
+    ARI1_serie = gr.State(value="---")
+    ARI1_metrica1 = gr.State(value="---")
+    ARI1_metrica2 = gr.State(value="---")   
+    ARI1_metrica3 = gr.State(value="---")
+    ARI1_prediccion = gr.State(value="Por Serie Temporal")
+    ARI1_pred1 =gr.State(value="---")
+    ARI1_pred2 =gr.State(value="---")
+    ARI1_pred3 =gr.State(value="---")
+    ARI1_pred4 =gr.State(value="---")
+    ARI1_pred5 =gr.State(value="---")
+    ARI2_cultivo = gr.State(value="---")
+    ARI2_provincia = gr.State(value="---")
+    ARI2_departamento = gr.State(value="---")   
+    ARI2_indicador = gr.State(value="---")
+    ARI2_serie = gr.State(value="---")   
+    ARI2_metrica1 = gr.State(value="---")
+    ARI2_metrica2 = gr.State(value="---")
+    ARI2_metrica3 = gr.State(value="---")
+    ARI2_prediccion = gr.State(value="Por Serie Temporal")
+    ARI2_pred1 =gr.State(value="---")
+    ARI2_pred2 =gr.State(value="---")
+    ARI2_pred3 =gr.State(value="---")
+    ARI2_pred4 =gr.State(value="---")
+    ARI2_pred5 =gr.State(value="---")
+    ARI3_cultivo = gr.State(value="---")
+    ARI3_provincia = gr.State(value="---")
+    ARI3_departamento = gr.State(value="---")
+    ARI3_indicador = gr.State(value="---")
+    ARI3_serie = gr.State(value="---")
+    ARI3_metrica1 = gr.State(value="---")
+    ARI3_metrica2 = gr.State(value="---")
+    ARI3_metrica3 = gr.State(value="---")
+    ARI3_prediccion = gr.State(value="Por Serie Temporal")
+    ARI3_pred1 =gr.State(value="---")
+    ARI3_pred2 =gr.State(value="---")
+    ARI3_pred3 =gr.State(value="---")
+    ARI3_pred4 =gr.State(value="---")
+    ARI3_pred5 =gr.State(value="---")
+    RF_cultivo = gr.State(value="---")
+    RF_provincia = gr.State(value="---")
+    RF_departamento = gr.State(value="---")
+    RF_indicador = gr.State(value="---")
+    RF_serie = gr.State(value="---")
+    RF_metrica1 = gr.State(value="---")
+    RF_metrica2 = gr.State(value="---")
+    RF_metrica3 = gr.State(value="---")
+    RF_prediccion = gr.State(value="Por Variables Externas")
+    RF_pred1 =gr.State(value="---")
+    RF_pred2 =gr.State(value="---")
+    RF_pred3 =gr.State(value="---")
+    RF_pred4 =gr.State(value="---")
+    RF_pred5 =gr.State(value="---")
+    NN_cultivo = gr.State(value="---")
+    NN_provincia = gr.State(value="---")
+    NN_departamento = gr.State(value="---")
+    NN_indicador = gr.State(value="---")
+    NN_serie = gr.State(value="---")
+    NN_metrica1 = gr.State(value="---")
+    NN_metrica2 = gr.State(value="---")
+    NN_metrica3 = gr.State(value="---")
+    NN_prediccion = gr.State(value="Por Variables Externas")
+    NN_pred1 =gr.State(value="---")
+    NN_pred2 =gr.State(value="---")
+    NN_pred3 =gr.State(value="---")
+    NN_pred4 =gr.State(value="---")
+    NN_pred5 =gr.State(value="---")
     # endregion: VARIABLES DE ESTADO
     
-
-
     gr.Row(elem_classes="header-tab")
     
-
     ###### ESTRUCTURA DE PESTAÑAS
     with gr.Tabs():
-
 
         ###### PESTAÑA INICIO
         with gr.Tab("Inicio"):
@@ -6088,26 +6888,26 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 #           elem_classes="portrait-subtitle")
                 with gr.Column(scale=3, elem_classes="portrait-st-2"): 
                        gr.HTML(""" <div class="info-box"> 
-                               <h2>Sobre el proyecto</h2> 
                                <p> Aplicación de algoritmos de Machine Learning a las Bases de Datos Abiertas de la Dirección Nacional de Agricultura del Ministerio de Agricultura, Ganadería y Pesca de la República Argentina. </p> 
-                               <p> Permite analizar series temporales anuales de los cultivos más importantes en las principales regiones productoras del país. </p> 
+                               <p> Análisis y predicción de series temporales anuales de los cultivos más importantes en las principales regiones productoras del país. </p> 
                                 <!-- Integrantes -->
-                                <h3>Trabajo en equipo</h3>
+                                <h3>Autores</h3>
                                 <ul class="integrantes">
-                                    <li>Jorge Perera</li>
-                                    <li>Marco Ferrara</li>
                                     <li>Yael Moretti</li>
+                                    <li>Marco Ferrara</li>
+                                    <li>Jorge Perera</li>
                                 </ul>
 
                                 <!-- Opcional -->
-                                <p class="footer-info">Instito Data Science Año: 2026</p>
+                                <p class="footer-info">Instituto Data Science - Año: 2026</p>
                                </div> """)
-            
-        ###### PESTAÑA DASHBOARD
+
+
+        ###### PESTAÑA DASHBOARD (MARCO)
         # comienzo prg MAF
         with gr.Tab("Dashboard") as tab_Dashboard:
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;CULTIVOS DE ARGENTINA - Dashboard", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;CULTIVOS DE ARGENTINA - DASHBOARD", elem_classes="title-text")
          
             with gr.Row():
                 with gr.Column(scale=10):
@@ -6190,12 +6990,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 inputs=[db_cultivo, db_provincia, db_departamento, db_year_min, db_year_max, db_metric, db_top_n],
                 outputs=[db_summary, db_map, db_chart_pie, db_chart_evo]
             )
-
-
         # fin prg MAF
-        
 
-        ###### PESTAÑA EDA
+
+        ###### PESTAÑA EDA (JORGE)
         with gr.Tab("EDA") as tab_EDA:
 
             with gr.Row(elem_classes="title-tab"):
@@ -6219,9 +7017,9 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                                             value="Elegir cultivo...", elem_classes="custom-dropdown-small")
                         gr.HTML("PROVINCIA", elem_classes="info-display-7")
                         provincia = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
-                        gr.HTML("ZONA", elem_classes="info-display-7")
+                        gr.HTML("DEPARTAMENTO/ZONA", elem_classes="info-display-7")
                         departamento = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
-                                        
+
                         chk_automatico = gr.Checkbox(label="Datos automáticos", value=False, elem_classes="custom-checkbox-3")
                         chk_interactivo = gr.Checkbox(label="Gráficos interactivos", value=False, elem_classes="custom-checkbox-3")
                         #btn_EDA_mostrar = gr.Button("Mostrar Datos", variant="primary", visible=True, elem_classes="custom-button")
@@ -6287,7 +7085,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
                 # Dataset con variables externas
                 with gr.Row(elem_classes="custom-tab"):
-                    info_label2 = gr.HTML(value="DEBE INDICARSE EL CULTIVO, LA PROVINCIA Y LA ZONA", elem_classes="info-display-1")
+                    info_label2 = gr.HTML(value="DEBE INDICARSE CULTIVO, PROVINCIA Y DEPARTAMENTO/ZONA", elem_classes="info-display-1")
                 with gr.Row(elem_classes="custom-tab"):
                     with gr.Column():
                         gr.HTML(value="ESTADÍSTICAS DE LAS VARIABLES COYUNTURALES", elem_classes="info-display-2")
@@ -6554,12 +7352,11 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             )
 
 
-
-        ###### PESTAÑA COMPARACIÓN DE SERIES TEMPORALES
+        ###### PESTAÑA COMPARACIÓN DE SERIES TEMPORALES (JORGE)
         with gr.Tab("Series Temporales") as tab_ST:
 
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;COMPARACIÓN DE SERIES TEMPORALES", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;ANÁLISIS Y COMPARACIÓN DE SERIES TEMPORALES", elem_classes="title-text")
             
             # region SUBPESTAÑA 1: SELECCIÓN DE LAS TRES SERIES TEMPORALES
             with gr.Tab("Selección de las Series") as subtab_sel_series:
@@ -6585,7 +7382,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                                         gr.HTML("PROVINCIA", elem_classes="info-display-4")
                                         prov1 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
-                                        gr.HTML("ZONA", elem_classes="info-display-4")
+                                        gr.HTML("DPTO/ZONA", elem_classes="info-display-4")
                                         dep1 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
                                         gr.HTML("INDICADOR", elem_classes="info-display-4")
@@ -6656,7 +7453,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                                         gr.HTML("PROVINCIA", elem_classes="info-display-4")
                                         prov2 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
-                                        gr.HTML("ZONA", elem_classes="info-display-4")
+                                        gr.HTML("DEPARTAMENTO/ZONA", elem_classes="info-display-4")
                                         dep2 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
                                         gr.HTML("INDICADOR", elem_classes="info-display-4")
@@ -6726,7 +7523,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                                         gr.HTML("PROVINCIA", elem_classes="info-display-4")
                                         prov3 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
-                                        gr.HTML("ZONA", elem_classes="info-display-4")
+                                        gr.HTML("DEPARTAMENTO/ZONA", elem_classes="info-display-4")
                                         dep3 = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                                     with gr.Row():
                                         gr.HTML("INDICADOR", elem_classes="info-display-4")
@@ -7553,7 +8350,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_1, ARIMA_q_1,
                             ARIMA_desc1, ARIMA_info1, ARIMA_serie_1,
                             Fourier_desc1, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_1, Fourier_info1]
+                            Fourier_serie_1, Fourier_info1,
+                            ARI1_cultivo, ARI1_provincia, ARI1_departamento, ARI1_indicador]
             )
 
             cult2.select(
@@ -7573,7 +8371,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_2, ARIMA_q_2,
                             ARIMA_desc2, ARIMA_info2, ARIMA_serie_2,
                             Fourier_desc2, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_2, Fourier_info2]
+                            Fourier_serie_2, Fourier_info2,
+                            ARI2_cultivo, ARI2_provincia, ARI2_departamento, ARI2_indicador]
             )
 
             cult3.select(
@@ -7593,7 +8392,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_3, ARIMA_q_3,
                             ARIMA_desc3, ARIMA_info3, ARIMA_serie_3,
                             Fourier_desc3, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_3, Fourier_info3]
+                            Fourier_serie_3, Fourier_info3,
+                            ARI3_cultivo, ARI3_provincia, ARI3_departamento, ARI3_indicador]
             )
 
             prov1.select(
@@ -7613,7 +8413,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_1, ARIMA_q_1,
                             ARIMA_desc1, ARIMA_info1, ARIMA_serie_1,
                             Fourier_desc1, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_1, Fourier_info1]
+                            Fourier_serie_1, Fourier_info1,
+                            ARI1_cultivo, ARI1_provincia, ARI1_departamento, ARI1_indicador]
             )
 
             prov2.select(
@@ -7633,7 +8434,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_2, ARIMA_q_2,
                             ARIMA_desc2, ARIMA_info2, ARIMA_serie_2,
                             Fourier_desc2, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_2, Fourier_info2]
+                            Fourier_serie_2, Fourier_info2,
+                            ARI2_cultivo, ARI2_provincia, ARI2_departamento, ARI2_indicador]
             )
             
             prov3.select(
@@ -7653,7 +8455,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_3, ARIMA_q_3,
                             ARIMA_desc3, ARIMA_info3, ARIMA_serie_3,
                             Fourier_desc3, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_3, Fourier_info3]
+                            Fourier_serie_3, Fourier_info3,
+                            ARI3_cultivo, ARI3_provincia, ARI3_departamento, ARI3_indicador]
             )
             
             dep1.select(
@@ -7673,7 +8476,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_1, ARIMA_q_1,
                             ARIMA_desc1, ARIMA_info1, ARIMA_serie_1,
                             Fourier_desc1, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_1, Fourier_info1]
+                            Fourier_serie_1, Fourier_info1,
+                            ARI1_cultivo, ARI1_provincia, ARI1_departamento, ARI1_indicador]
             )
 
             dep2.select(
@@ -7693,7 +8497,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_2, ARIMA_q_2,
                             ARIMA_desc2, ARIMA_info2, ARIMA_serie_2,
                             Fourier_desc2, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_2, Fourier_info2]
+                            Fourier_serie_2, Fourier_info2,
+                            ARI2_cultivo, ARI2_provincia, ARI2_departamento, ARI2_indicador]
             )
 
             dep3.select(
@@ -7713,7 +8518,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_3, ARIMA_q_3,
                             ARIMA_desc3, ARIMA_info3, ARIMA_serie_3,
                             Fourier_desc3, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_3, Fourier_info3]
+                            Fourier_serie_3, Fourier_info3,
+                            ARI3_cultivo, ARI3_provincia, ARI3_departamento, ARI3_indicador]
             )
 
             var1.select(
@@ -7733,7 +8539,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_1, ARIMA_q_1,
                             ARIMA_desc1, ARIMA_info1, ARIMA_serie_1,
                             Fourier_desc1, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_1, Fourier_info1]
+                            Fourier_serie_1, Fourier_info1,
+                            ARI1_cultivo, ARI1_provincia, ARI1_departamento, ARI1_indicador]
             )
             
             var2.select(
@@ -7753,7 +8560,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_2, ARIMA_q_2,
                             ARIMA_desc2, ARIMA_info2, ARIMA_serie_2,
                             Fourier_desc2, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_2, Fourier_info2]
+                            Fourier_serie_2, Fourier_info2,
+                            ARI2_cultivo, ARI2_provincia, ARI2_departamento, ARI2_indicador]
             )
 
             var3.select(
@@ -7773,7 +8581,8 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_p_3, ARIMA_q_3,
                             ARIMA_desc3, ARIMA_info3, ARIMA_serie_3,
                             Fourier_desc3, Fourier_series_orig, Fourier_series_dif,
-                            Fourier_serie_3, Fourier_info3]
+                            Fourier_serie_3, Fourier_info3,
+                            ARI3_cultivo, ARI3_provincia, ARI3_departamento, ARI3_indicador]
             )
 
             graph_serie.change(
@@ -8077,7 +8886,14 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ARIMA_graph2_resids, ARIMA_resids2, ARIMA_comparat2,
                             dataset_ARIMA_state_3,
                             ARIMA_info3, ARIMA_serie_3, ARIMA_graph3, ARIMA_preds3,
-                            ARIMA_graph3_resids, ARIMA_resids3, ARIMA_comparat3]
+                            ARIMA_graph3_resids, ARIMA_resids3, ARIMA_comparat3,
+                            ARI1_indicador, ARI1_serie, ARI1_metrica1, ARI1_metrica2, ARI1_metrica3,
+                            ARI2_indicador, ARI2_serie, ARI2_metrica1, ARI2_metrica2, ARI2_metrica3,
+                            ARI3_indicador, ARI3_serie, ARI3_metrica1, ARI3_metrica2, ARI3_metrica3,
+                            ARI1_pred1, ARI1_pred2, ARI1_pred3, ARI1_pred4, ARI1_pred5,
+                            ARI2_pred1, ARI2_pred2, ARI2_pred3, ARI2_pred4, ARI2_pred5,
+                            ARI3_pred1, ARI3_pred2, ARI3_pred3, ARI3_pred4, ARI3_pred5
+                            ]
             )
 
             Fourier_button.click(
@@ -8335,125 +9151,148 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             
             # endregion EVENTOS DE COMPONENTES DE LA PESTAÑA SERIES TEMPORALES
 
-   
-        ###### PESTAÑA BOSQUES ALEATORIOS
-        #YAE_GRF: ###############################
-        ###### PESTAÑA BOSQUES ALEATORIOS
+
+        ###### PESTAÑA BOSQUES ALEATORIOS (YAEL)
         with gr.Tab("Bosques Aleatorios"):
             # DEFINICIÓN DEL ESTADO (Variable invisible en memoria)
             df_rf = gr.State()
             df_combinar_rf = gr.State()
 
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;ANÁLISIS DE INDICADORES EDUCATIVOS MEDIANTE BOSQUES ALEATORIOS", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE BOSQUES ALEATORIOS", elem_classes="title-text")
 
             with gr.Row():
             # COLUMNA IZQUIERDA (COMBOS)
-                with gr.Column( elem_classes="custom-tab", min_width=200):
-                     gr.HTML("CULTIVO", elem_classes="info-display-7")
-                     cultivos_disponibles = [c for c in FILE_MAP.keys() if c != "VARIABLES"]
-                     cultivo_rf = gr.Dropdown(label="", 
-                                            choices=["Elegir cultivo..."] + sorted(cultivos_disponibles),
-                                            value="Elegir cultivo...", elem_classes="custom-dropdown-small")
-                     gr.HTML("PROVINCIA", elem_classes="info-display-7")
-                     provincia_rf = gr.Dropdown(label="", 
-                                            choices=[""],
-                                            value=None, 
-                                            interactive=True, 
-                                            elem_classes="custom-dropdown-small")
-                     gr.HTML("TIPO DE DATOS", elem_classes="info-display-7")
-                     radio_datos = gr.Radio(
-                                        choices=["Originales (Numéricos)", "Escalados (Normalizados)"],
-                                        value="Originales (Numéricos)", # Opción por defecto
-                                        # label="", 
-                                        show_label=False,
-                                        interactive=True,
-                                        elem_classes="custom-radio"
-                                     )
+                with gr.Column(elem_classes="custom-tab", min_width=200):
+
+                    gr.HTML("CULTIVO", elem_classes="info-display-7")
+                    cultivos_disponibles = [c for c in FILE_MAP.keys() if c != "VARIABLES"]
+                    cultivo_rf = gr.Dropdown(label="", 
+                                        choices=["Elegir cultivo..."] + sorted(cultivos_disponibles),
+                                        value="Elegir cultivo...", elem_classes="custom-dropdown-small")
+                    gr.HTML("PROVINCIA", elem_classes="info-display-7")
+                    provincia_rf = gr.Dropdown(label="", choices=[""], value=None, 
+                                        interactive=True, elem_classes="custom-dropdown-small")
+                    gr.HTML("DEPARTAMENTO/ZONA", elem_classes="info-display-7")
+                    departamento_rf = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
+                    gr.HTML("INDICADOR", elem_classes="info-display-7")
+                    indicador_rf = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
+
+                    gr.HTML("TIPO DE DATOS", elem_classes="info-display-7")
+                    radio_datos = gr.Radio(
+                                    choices=["Originales (Numéricos)", "Escalados (Normalizados)"],
+                                    value="Originales (Numéricos)", # Opción por defecto
+                                    show_label=False, interactive=True, elem_classes="custom-radio")
+                
             # COLUMNA DERECHA (SUBPESTAÑA)
                 with gr.Column(scale=20):
                     #SUBPESTAÑA RF: 
-                    with gr.Tab("Algoritmo") as rfPredecir:
+                    with gr.Tab("Modelo") as rfPredecir:
                         with gr.Row():
                              with gr.Column(elem_classes="custom-tab-2", scale=20):  
-                                gr.HTML(value="PREDICCION DE RENDIMIENTO", elem_classes="info-display-2")
+                                gr.HTML(value="PREDICCION DE RENDIMIENTO", elem_classes="subtitle-text")
                              with gr.Column(min_width=150):
-                                btnPredecir_rf = gr.Button("Predecir",variant="primary", visible=True,                                                 elem_classes="custom-button3")
-                        salida_rf = gr.Plot(label="Importancia de Variables")  
-                        metricas_rf = gr.Textbox(label="Evaluación del Modelo", interactive=False)
-                        salidaPrediccion_rf = gr.Plot(label="Predicción Random Forest") 
-                        tableOutErrorP_rf = gr.Dataframe(interactive=False, max_height=335)
+                                btnPredecir_rf = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
+                        with gr.Column(elem_classes="custom-tab", scale=20):
+                            # salida_rf = gr.Plot(label="Importancia de Variables")
+                            salida_rf = gr.Plot(show_label=False) 
+                            # metricas_rf = gr.Textbox(label="Evaluación del Modelo", interactive=False)
+                            # metricas_rf = gr.Textbox(show_label=False, interactive=False)
+                            metricas_rf = gr.HTML(elem_classes="info-display-3")
+                            # salidaPrediccion_rf = gr.Plot(label="Predicción Random Forest") 
+                            salidaPrediccion_rf = gr.Plot(show_label=False) 
+                            tableOutErrorP_rf = gr.Dataframe(interactive=False, max_height=335)
 
                     #SUBPESTAÑA DataSet:
                     with gr.Tab("Set de Datos") as rfEda:
                         with gr.Row():
                             with gr.Column(elem_classes="custom-tab-2", scale=20):   
-                                 gr.HTML(value="CONTENIDO DE LAS VARIABLES", elem_classes="info-display-2")
+                                 gr.HTML(value="CONTENIDO DE LAS VARIABLES", elem_classes="subtitle-text")
                             with gr.Column(min_width=150):
-                                btnEda_rf = gr.Button("Visualizar", variant="primary", visible=True,                                                 elem_classes="custom-button3")
-                        tableOut_rf = gr.Dataframe(interactive=False, max_height=335, label="Datos registrados")
-                        tableOutConvertida_rf = gr.Dataframe(interactive=False, max_height=335, label="Tipo de Datos con los que trabajamos")
-                       # tableOutNro_rf  = gr.Dataframe(interactive=False, max_height=335)
-                       # tableOutEsc_rf = gr.Dataframe(interactive=False, max_height=335)
+                                btnEda_rf = gr.Button("Visualizar", variant="primary", visible=True, elem_classes="custom-button3")
+                        with gr.Column(elem_classes="custom-tab", scale=20):
+                            gr.HTML(value="DATOS ORIGINALES", elem_classes="subtitle-text")
+                            tableOut_rf = gr.Dataframe(interactive=False, max_height=335, show_label=False)
+                            gr.HTML(value="DATOS TRANSFORMADOS PARA EL ALGORITMO", elem_classes="subtitle-text")
+                            tableOutConvertida_rf = gr.Dataframe(interactive=False, max_height=335, show_label=False)
+                            # tableOutNro_rf  = gr.Dataframe(interactive=False, max_height=335)
+                            # tableOutEsc_rf = gr.Dataframe(interactive=False, max_height=335)
 
             # Eventos YAE
             cultivo_rf.change(
-                               fn=rf_on_cultivo,
-                               inputs=cultivo_rf,
-                               outputs=[provincia_rf, df_rf]
-                            ) 
+                fn=rf_on_cultivo,
+                inputs=cultivo_rf,
+                outputs=[provincia_rf, departamento_rf, indicador_rf, df_rf]
+            ) 
+            
+            provincia_rf.change(
+                fn=rf_on_provincia,
+                inputs=[cultivo_rf, provincia_rf],
+                outputs=[departamento_rf, indicador_rf, df_rf]
+            )
+
+            departamento_rf.change(
+                fn=rf_on_departamento,
+                inputs=[cultivo_rf, provincia_rf, departamento_rf],
+                outputs=[indicador_rf, df_rf]
+            )
+
             btnEda_rf.click(
-                            fn=rf_cargaEDA, 
-                            inputs=[df_rf, cultivo_rf, provincia_rf, radio_datos], 
-                            outputs=[tableOut_rf, df_combinar_rf, tableOutConvertida_rf] 
-                            )
+                fn=rf_cargaEDA, 
+                inputs=[df_rf, cultivo_rf, provincia_rf, 
+                        departamento_rf, radio_datos], 
+                outputs=[tableOut_rf, df_combinar_rf, tableOutConvertida_rf] 
+            )
+            
             btnPredecir_rf.click(
-                            fn=rf_cargaPredecir,
-                            inputs=[df_rf, cultivo_rf, provincia_rf, radio_datos],
-                            outputs=[salida_rf, metricas_rf, salidaPrediccion_rf, tableOutErrorP_rf] # El gráfico y el texto de métricas
-                            )
+                fn=rf_cargaPredecir,
+                inputs=[df_rf, cultivo_rf, provincia_rf, 
+                        departamento_rf, indicador_rf, radio_datos],
+                # El gráfico y el texto de métricas
+                outputs=[salida_rf, metricas_rf, salidaPrediccion_rf, tableOutErrorP_rf,
+                            RF_cultivo, RF_provincia, RF_departamento, RF_indicador,
+                            RF_serie, RF_metrica1, RF_metrica2, RF_metrica3,
+                            RF_pred1, RF_pred2, RF_pred3, RF_pred4, RF_pred5] 
+                            
+            )
+
          # fin BOSQUES ALEATORIOS
-        #YAE_GRF: ###############################
-                
-        
-        ###### PESTAÑA PROBABILIDAD BAYESIANA
-     ######   with gr.Tab("Probabilidad Bayesiana"):
-     ######       with gr.Row(elem_classes="title-tab"):
-    ######         gr.HTML("&nbsp;&nbsp;ANÁLISIS DE SERIES TEMPORALES MEDIANTE PROBABILIDAD BAYESIANA", elem_classes="title-text")
-        
-        
-        ###### PESTAÑA REDES NEURONALES
-        # comienzo prg MAF
+
+
+        ###### PESTAÑA REDES NEURONALES (MARCO)
         with gr.Tab("Redes Neuronales") as tab_NN:
-            # comienzo prg MAF
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;ANÁLISIS DE INDICADORES EDUCATIVOS MEDIANTE REDES NEURONALES", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE REDES NEURONALES", elem_classes="title-text")
             
             # --- Timeline / Year Range ---
-            with gr.Row():
-                nn_timeline = gr.HTML("<div style='color: gray; padding: 10px;'>Cargando información del periodo...</div>")
+            # with gr.Row():
+            #    nn_timeline = gr.HTML("<div style='color: gray; padding: 10px;'>Cargando información del periodo...</div>")
 
             with gr.Row():
-                with gr.Column(scale=1):
-                    with gr.Row():
-                        nn_cultivo = gr.Dropdown(label="CULTIVO", choices=list(FILE_MAP.keys()), value="ARROZ")
-                    with gr.Row():
-                        nn_provincia = gr.Dropdown(label="PROVINCIA", choices=[])
-                    with gr.Row():
-                        nn_departamento = gr.Dropdown(label="DEPARTAMENTO", choices=[])
-                    with gr.Row():
-                        nn_indicador = gr.Dropdown(label="INDICADOR", choices=[])
-                    with gr.Row():
-                        nn_hidden = gr.Textbox(label="Capas Ocultas (ej: 100,50)", value="100")
-                    with gr.Row():
-                        nn_iter = gr.Number(label="Iteraciones Máx.", value=1000)
-                    with gr.Row():
-                        nn_btn_train = gr.Button("Entrenar y Predecir", variant="primary")
+                with gr.Column(elem_classes="custom-tab", min_width=200):
+                    gr.HTML("CULTIVO", elem_classes="info-display-7")
+                    cultivos_disponibles = [c for c in FILE_MAP.keys() if c != "VARIABLES"]
+                    nn_cultivo = gr.Dropdown(label="", 
+                                choices=["Elegir cultivo..."] + sorted(cultivos_disponibles),
+                                value="Elegir cultivo...", elem_classes="custom-dropdown-small")
+                    gr.HTML("PROVINCIA", elem_classes="info-display-7")
+                    nn_provincia = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
+                    gr.HTML("DEPARTAMENTO/ZONA", elem_classes="info-display-7")
+                    nn_departamento = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
+                    gr.HTML("INDICADOR", elem_classes="info-display-7")
+                    nn_indicador = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
+                    gr.HTML("CAPAS OCULTAS", elem_classes="info-display-7")
+                    nn_hidden = gr.Textbox(show_label=False, value="10")
+                    gr.HTML("NRO. MÁX. ITERACIONES", elem_classes="info-display-7")
+                    nn_iter = gr.Number(show_label=False, value=1000)
+                    nn_btn_train = gr.Button("Predecir", variant="primary", elem_classes="custom-button3")
                 
-                with gr.Column(scale=2):
-                    nn_stats = gr.HTML("<b>Resultados del Entrenamiento</b>")
-                    nn_plot = gr.Plot()
-                    nn_table = gr.Dataframe(label="Datos Comparativos")
+                with gr.Column(scale=20, elem_classes="custom-tab"):
+                    # --- Timeline / Year Range ---
+                    nn_timeline = gr.HTML(elem_classes="info-display-3")
+                    nn_stats = gr.HTML(elem_classes="info-display-3")
+                    nn_plot = gr.Plot(show_label=False)
+                    nn_table = gr.Dataframe(show_label=False)
 
             # Eventos
             tab_NN.select(
@@ -8484,20 +9323,62 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             nn_btn_train.click(
                 fn=tab_NN_train_and_predict,
                 inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
-                outputs=[nn_stats, nn_plot, nn_table]
+                outputs=[nn_stats, nn_plot, nn_table,
+                            NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
+                            NN_serie, NN_metrica1, NN_metrica2, NN_metrica3,
+                            NN_pred1, NN_pred2, NN_pred3, NN_pred4, NN_pred5]
             )
             # fin prg MAF
-        
-        ###### PESTAÑA KNN & SVM
-     ######   with gr.Tab("KNN & SVM"):
-     ######       with gr.Row(elem_classes="title-tab"):
-     ######           gr.HTML("&nbsp;&nbsp;ANÁLISIS DE INDICADORES EDUCATIVOS CON K-NN Y SVM", elem_classes="title-text")
-            
-        
+
+
         ###### PESTAÑA CONCLUSIONES
-        with gr.Tab("Conclusiones"):
+        with gr.Tab("Conclusiones") as tab_conclusiones:
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;CONCLUSIONES", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PRINCIPALES MÉTRICAS DE LOS MODELOS APLICADOS", elem_classes="title-text")
+
+            with gr.Row(elem_classes="custom-tab"):
+                tabla_comparativa = gr.Dataframe(
+                    headers=["Métrica / Parámetro", "ARIMA 1", "ARIMA 2", "ARIMA 3", "Random Forest", "Neural Network"],
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="custom-table"
+                )
+
+            with gr.Row(elem_classes="title-tab"):
+                gr.HTML("&nbsp;&nbsp;PREDICCIONES PARA LOS PRÓXIMOS 5 AÑOS", elem_classes="title-text")
+
+            with gr.Row(elem_classes="custom-tab"):
+                tabla_predicciones = gr.Dataframe(
+                    headers=["Valor Predicho", "ARIMA 1", "ARIMA 2", "ARIMA 3", "Random Forest", "Neural Network"],
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="custom-table"
+                )
+
+            lista_variables = [
+                ARI1_prediccion, ARI1_cultivo, ARI1_provincia, ARI1_departamento, ARI1_indicador,
+                ARI1_serie, ARI1_metrica1, ARI1_metrica2, ARI1_metrica3, 
+                ARI2_prediccion, ARI2_cultivo, ARI2_provincia, ARI2_departamento, ARI2_indicador, 
+                ARI2_serie, ARI2_metrica1, ARI2_metrica2, ARI2_metrica3,
+                ARI3_prediccion, ARI3_cultivo, ARI3_provincia, ARI3_departamento, ARI3_indicador, 
+                ARI3_serie, ARI3_metrica1, ARI3_metrica2, ARI3_metrica3,
+                RF_prediccion, RF_cultivo, RF_provincia, RF_departamento, RF_indicador, 
+                RF_serie, RF_metrica1, RF_metrica2, RF_metrica3,
+                NN_prediccion, NN_cultivo, NN_provincia, NN_departamento, NN_indicador, 
+                NN_serie, NN_metrica1, NN_metrica2, NN_metrica3,
+                ARI1_pred1, ARI1_pred2, ARI1_pred3, ARI1_pred4, ARI1_pred5,
+                ARI2_pred1, ARI2_pred2, ARI2_pred3, ARI2_pred4, ARI2_pred5,
+                ARI3_pred1, ARI3_pred2, ARI3_pred3, ARI3_pred4, ARI3_pred5,
+                RF_pred1, RF_pred2, RF_pred3, RF_pred4, RF_pred5,
+                NN_pred1, NN_pred2, NN_pred3, NN_pred4, NN_pred5          
+            ]
+
+            tab_conclusiones.select(
+                fn = tab_CONC_show_conclusions,
+                inputs = lista_variables,
+                outputs = [tabla_comparativa, tabla_predicciones]
+            )
+
 
 
 if __name__ == "__main__":
@@ -8512,5 +9393,6 @@ if __name__ == "__main__":
     # Lanzamos la aplicación
     # allowed_paths DEBE incluir las rutas absolutas de las carpetas que contienen recursos
     app.launch(
+        inbrowser=True,
         allowed_paths=[current_dir, images_folder]
     )

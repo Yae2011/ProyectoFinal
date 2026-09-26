@@ -1,19 +1,19 @@
 ==================================================
-ANÁLISIS DE CULTIVOS E INDICADORES EDUCATIVOS
+ANÁLISIS DE CULTIVOS
 ==================================================
 
-Esta aplicación es una plataforma interactiva desarrollada con Gradio para el análisis avanzado de datos agrícolas y educativos en Argentina. Permite la visualización espacial, el análisis estadístico y la predicción de series temporales.
+Esta aplicación es una plataforma interactiva desarrollada con Gradio para el análisis avanzado de datos agrícolas en Argentina. Permite la visualización espacial, el análisis estadístico y la predicción de series temporales.
 
 ESTRUCTURA DEL PROYECTO
 -----------------------
 
-/app.maf.py
-    Archivo principal de la aplicación (Versión Productiva a compaginar). 
+/appDiplo.py
+    Archivo principal de la aplicación (Versión Productiva consolidada). 
     Contiene toda la lógica de Gradio, procesamiento de datos 
     y modelado estadístico (ARIMA, ML).
     
-/app.py
-    Versión  de la aplicación.
+/app_*.py
+    Versiones históricas y respaldos de la aplicación en desarrollo.
 
 /style.css
     Archivo de estilos personalizados. Define la estética "dark mode", 
@@ -62,9 +62,9 @@ La aplicación se divide en varias secciones clave:
    - Modelado predictivo ARIMA con ajuste de parámetros p y q.
 
 4. Módulos de Machine Learning (Educación) [EN DESARROLLO]:
-   - Estructura preparada para el análisis de indicadores educativos mediante 
-     Bosques Aleatorios, Probabilidad Bayesiana, Redes Neuronales y K-NN/SVM.
-    .- Redes Neuronales - Terminado (MAF)
+   - Estructura preparada para el análisis de cultivos mediante 
+     Bosques Aleatorios y Redes Neuronales.
+
 
 REQUISITOS Y EJECUCIÓN
 ----------------------
@@ -88,7 +88,7 @@ Para ejecutar la aplicación se recomienda utilizar un entorno virtual (venv):
    pip install -r requirements.txt
 
 4. Lanzar la aplicación productiva:
-   python app.py
+   python appDiplo.py
 
 5. Abre la URL local (normalmente http://127.0.0.1:7860) en el navegador.
 
