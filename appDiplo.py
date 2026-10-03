@@ -10163,7 +10163,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA COMPARATIVA DE MODELOS (JORGE)
-        with gr.Tab("Comparativa de Modelos") as tab_NN:
+        with gr.Tab("Comparativa de Modelos") as tab_CM:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVO PARA LAS PRÓXIMAS TRES CAMPAÑAS", elem_classes="title-text")
 
