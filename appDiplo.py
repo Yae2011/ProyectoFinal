@@ -6990,7 +6990,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
     # Manejo de fallos o combinaciones vacías
     if errores or not combinaciones: # Retorna un DataFrame vacío
         return pd.DataFrame(columns=["PROVINCIA", "DEPARTAMENTO",
-                                    "INIC", "FIN", "AÑOS", "ELIM", "IMP",
+                                    "INIC", "FIN", "AÑOS", "ELIM", "IMP", "UTIL",
                                     "HOLT-WINTERS", "ARIMA", "BOSQUES ALEATORIOS", "RED LSTM"])
 
     # Descartar el elemento 'cultivo' extrayendo únicamente 'provincia' y 'departamento' 
@@ -7000,7 +7000,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
     df_predicciones = pd.DataFrame(combinaciones_filtradas, columns=["PROVINCIA", "DEPARTAMENTO"])
 
     # Inicializar las columnas de los modelos predictivos con el valor por defecto "---"
-    columnas_data = ["INIC", "FIN", "AÑOS", "ELIM", "IMP",
+    columnas_data = ["INIC", "FIN", "AÑOS", "ELIM", "IMP", "UTIL",
                         "HOLT-WINTERS", "ARIMA", "BOSQUES ALEATORIOS", "RED LSTM"]
     for col in columnas_data:
         df_predicciones[col] = "---"
@@ -7024,6 +7024,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
         df_predicciones.at[idx, "AÑOS"] = str(serie)
         df_predicciones.at[idx, "ELIM"] = str(elim)
         df_predicciones.at[idx, "IMP"] = str(imp)
+        df_predicciones.at[idx, "UTIL"] = str(serie - elim + imp)
 
         # Se extraen los últimos 3 valores de la serie histórica
         ultimos_historicos: List[float] = df_preparado.iloc[-3:, 1].astype(float).tolist()
