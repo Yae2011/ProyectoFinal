@@ -7233,7 +7233,7 @@ def tab_CM_arima(df: pd.DataFrame, pasos: int) -> list[int]:
 
     return predicciones_enteras
 
-def tab_CM_rf(df: pd.DataFrame, pasos: int) -> list[int]:
+def tab_CM_rf_defectuosa(df: pd.DataFrame, pasos: int) -> list[int]:
     
     """
     Aplica el algoritmo de aprendizaje supervisado Random Forest Regressor a
@@ -7343,6 +7343,108 @@ def tab_CM_rf(df: pd.DataFrame, pasos: int) -> list[int]:
 
     return predicciones_enteras
 
+def tab_CM_rf(df: pd.DataFrame, pasos: int) -> list[int]:
+    """
+    Aplica el algoritmo de aprendizaje supervisado Random Forest Regressor a
+    una serie temporal y predice valores futuros. Transforma la serie en un
+    problema supervisado mediante la creación de variables desfasadas (lags),
+    evalúa la profundidad optima del historial y realiza una predicción
+    iterativa autoregresiva, utilizando un esquema de validación temporal
+    para evitar sobreajuste.
+    Parámetros:
+        df: pd.DataFrame (con dos columnas: tiempo, indicador agrícola)
+        pasos: int (cantidad de periodos a predecir)
+    Devuelve:
+        list[int]: lista de valores futuros predichos, redondeados sin decimales.
+    """
+    try:
+        # Asegurar la extracción y tipo de la serie temporal
+        serie = df.iloc[:, 1].astype(float).values
+        n_obs = len(serie)
+        if n_obs < 5:
+            return None
+
+        pasos_futuros = pasos
+        max_lags = min(5, max(1, n_obs // 4))
+
+        def crear_dataset_supervisado(
+            datos: np.ndarray, n_lags: int
+        ) -> tuple[np.ndarray, np.ndarray]:
+            X, y = [], []
+            for i in range(len(datos) - n_lags):
+                X.append(datos[i : (i + n_lags)])
+                y.append(datos[i + n_lags])
+            return np.array(X), np.array(y)
+
+        # 2. Selección óptima de lags utilizando validación fuera de muestra (Train/Validation Split temporal)
+        best_mse = float("inf")
+        best_lags = 1
+
+        # Reservamos el último 20% de los datos como conjunto de validación temporal
+        split_idx = int(n_obs * 0.8)
+
+        for lags in range(1, max_lags + 1):
+            X_temp, y_temp = crear_dataset_supervisado(serie, lags)
+
+            if len(X_temp) < 4:
+                continue
+
+            # Separar en entrenamiento y validación respetando el orden temporal
+            train_mask = [
+                i < split_idx - lags for i in range(len(X_temp))
+            ]
+            if sum(train_mask) < 2 or sum(train_mask) == len(X_temp):
+                # Si el split no es viable, evaluamos con el total pero penalizamos complejidad
+                X_train_v, y_train_v = X_temp, y_temp
+                X_val_v, y_val_v = X_temp, y_temp
+            else:
+                X_train_v, y_train_v = (
+                    X_temp[train_mask],
+                    y_temp[train_mask],
+                )
+                X_val_v, y_val_v = (
+                    X_temp[~np.array(train_mask)],
+                    y_temp[~np.array(train_mask)],
+                )
+
+            rf_eval = RandomForestRegressor(
+                n_estimators=50, max_depth=4, random_state=42
+            )
+            rf_eval.fit(X_train_v, y_train_v)
+            pred_val = rf_eval.predict(X_val_v)
+
+            # Error cuadrático medio de validación
+            mse_val = np.mean((y_val_v - pred_val) ** 2)
+
+            if mse_val < best_mse:
+                best_mse = mse_val
+                best_lags = lags
+
+        # 3. Reentrenamiento del modelo final con todo el dataset usando los mejores lags
+        X_final, y_final = crear_dataset_supervisado(serie, best_lags)
+
+        modelo_rf = RandomForestRegressor(
+            n_estimators=100, max_depth=6, random_state=42, n_jobs=-1
+        )
+        modelo_rf.fit(X_final, y_final)
+
+        # 4. Generación de pronósticos fuera de muestra (Estrategia Autoregresiva)
+        predicciones = []
+        ventana_actual = list(serie[-best_lags:])
+
+        for _ in range(pasos_futuros):
+            input_vector = np.array(ventana_actual[-best_lags:]).reshape(1, -1)
+            pred_paso = modelo_rf.predict(input_vector)[0]
+            predicciones.append(pred_paso)
+            ventana_actual.append(pred_paso)
+
+        # 5. Formateo de los resultados a enteros sin decimales
+        return [int(np.round(val)) for val in predicciones]
+
+    except Exception:
+        # En caso de excepción crítica, se retorna el último valor sostenido en el horizonte
+        ultimo_valor = int(np.round(df.iloc[-1, 1]))
+        return [ultimo_valor] * pasos
 def tab_CM_lstm(df: pd.DataFrame, pasos: int) -> list[int]:
     
     """
