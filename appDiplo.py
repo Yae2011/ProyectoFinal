@@ -10425,5 +10425,4 @@ if __name__ == "__main__":
     app.launch(
         inbrowser=True,
         ssr_mode=False,
-        allowed_paths=[current_dir, images_folder]
-    )
+        allowed_paths=[current_dir, images_folder]    )
