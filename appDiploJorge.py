@@ -69,6 +69,7 @@ from sklearn.compose import ColumnTransformer
 
 # comienzo prg MAF 
 # Uso en Huggings
+'''
 try:
     import spaces
     @spaces.GPU
@@ -76,7 +77,7 @@ try:
         pass
 except ImportError:
     pass  # ejecución local: no hay ZeroGPU
-
+'''
 # fin prg MAF
 
 # region CONSTANTES Y DICCIONARIOS
@@ -3869,16 +3870,7 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
         'Sup': intervalos.iloc[:, 1].values
     })
 
-<<<<<<< HEAD
     pred1, pred2, pred3 = df_plot_pred['Valor'].round(2)
-=======
-    # pred1, pred2, pred3, pred4, pred5 = df_plot_pred['Valor'].round(2)
-    # Valores predichos redondeados (funciona con cualquier n)
-    preds = df_plot_pred['Valor'].round(2).tolist()
-    # Se completan hasta 3 posiciones por si n < 3
-    preds += ['---'] * (3 - len(preds))
-    pred1, pred2, pred3 = preds[:3]
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
 
     # Se agrega al df histórico el primer dato del df predicho para 
     # que no quede un salto en el gráfico.
@@ -7832,7 +7824,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
     with gr.Tabs():
 
         ###### PESTAÑA INICIO
-        with gr.Tab("Inicio"):
+        with gr.Tab("INICIO") as tab_inicio:
             with gr.Row():
                 with gr.Column(scale=8, elem_classes="portrait-bg-video"): # elem_classes="portrait-bg-1"):
                     gr.HTML(portada_video)
@@ -7872,7 +7864,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
         ###### PESTAÑA DASHBOARD (MARCO)
         # comienzo prg MAF
-        with gr.Tab("Dashboard") as tab_Dashboard:
+        with gr.Tab("DASHBOARD") as tab_Dashboard:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;CULTIVOS DE ARGENTINA - DASHBOARD", elem_classes="title-text")
          
@@ -7967,12 +7959,12 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 gr.HTML("&nbsp;&nbsp;VISUALIZACIÓN DE DATOS DE LOS PRINCIPALES CULTIVOS DE ARGENTINA", elem_classes="title-text")
             
             # region SUBPESTAÑA 1: VISUALIZACIÓN DE CULTIVOS
-            with gr.Tab("Dataset del Cultivo") as subtab_EDA_data:
+            with gr.Tab("DATASET DEL CULTIVO") as subtab_EDA_data:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
                         gr.HTML("&nbsp;&nbsp;1. DATASET DE CULTIVOS", elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
-                        btn_EDA_mostrar = gr.Button("Mostrar datos", variant="primary", visible=True, 
+                        btn_EDA_mostrar = gr.Button("Mostrar", variant="primary", visible=True, 
                                                 elem_classes="custom-button3")
 
                 with gr.Row():
@@ -8044,7 +8036,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 1: VISUALIZACIÓN DE CULTIVOS
 
             # region SUBPESTAÑA 2: VARIABLES EXTERNAS
-            with gr.Tab("Variables Coyunturales") as subtab_VARS_data:
+            with gr.Tab("VARIABLES COYUNTURALES") as subtab_VARS_data:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
                         gr.HTML("&nbsp;&nbsp;2. VARIABLES EXTERNAS DE LA COYUNTURA NACIONAL",
@@ -8320,13 +8312,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA COMPARACIÓN DE SERIES TEMPORALES (JORGE)
-        with gr.Tab("Series Temporales") as tab_ST:
+        with gr.Tab("SERIES TEMPORALES") as tab_ST:
 
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;ANÁLISIS Y COMPARACIÓN DE SERIES TEMPORALES", elem_classes="title-text")
             
             # region SUBPESTAÑA 1: SELECCIÓN DE LAS TRES SERIES TEMPORALES
-            with gr.Tab("Selección de las Series") as subtab_sel_series:
+            with gr.Tab("SERIES") as subtab_sel_series:
                
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2"):    
@@ -8572,10 +8564,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 1: SELECCIÓN DE LAS TRES SERIES TEMPORALES
 
             # region SUBPESTAÑA 2: DESCOMPOSICIÓN DE LAS SERIES TEMPORALES (MÉTODO STL)
-            with gr.Tab("Descomposición STL") as subtab_STL_decomp:
+            with gr.Tab("STL") as subtab_STL_decomp:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN DE LAS SERIES - MÉTODO STL (SEASONAL-TREND DECOMPOSITION USING LOESS) PARA SERIES CORTAS", 
+                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN POR MÉTODO STL (SEASONAL-TREND DECOMPOSITION USING LOESS)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         STL_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8757,10 +8749,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SECCION 2: DESCOMPOSICIÓN DE LAS TRES SERIES TEMPORALES (MÉTODO STL)
 
             # region SUBPESTAÑA 3: DESCOMPOSICIÓN DE LAS SERIES TEMPORALES (MÉTODO HOLT-WINTERS)
-            with gr.Tab("Descomposición Holt-Winters") as subtab_HW_decomp:
+            with gr.Tab("HOLT-WINTERS") as subtab_HW_decomp:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN DE LAS SERIES - MÉTODO HOLT-WINTERS (SUAVIZADO EXPONENCIAL)", 
+                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN POR MÉTODO HOLT-WINTERS (SUAVIZADO EXPONENCIAL)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         HW_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8909,10 +8901,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SECCION 3: DESCOMPOSICIÓN DE LAS TRES SERIES TEMPORALES (MÉTODO HOLT-WINTERS)
 
             # region SUBPESTAÑA 4: DIFERENCIACIÓN DE LAS SERIES Y PRUEBA ADF
-            with gr.Tab("Diferenciación de las Series") as subtab_dif_series:
+            with gr.Tab("DIFERENCIACIÓN") as subtab_dif_series:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;3. DIFERENCIACIÓN DE LAS SERIES Y PRUEBA DE DICKEY-FÜLLER AUMENTADA (ADF) PARA VERIFICAR ESTACIONARIEDAD", 
+                        gr.HTML("&nbsp;&nbsp;3. DIFERENCIACIÓN DE LAS SERIES Y PRUEBA DE DICKEY-FÜLLER AUMENTADA (ADF)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         ADF_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8954,10 +8946,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 4: DIFERENCIACIÓN DE LAS SERIES Y PRUEBA ADF
 
             # region SUBPESTAÑA 5: CÁLCULO DE AUTOCORRELACIONES DE LAS SERIES
-            with gr.Tab("ACF y PACF de las Series") as subtab_ACF_PACF:
+            with gr.Tab("ACF y PACF") as subtab_ACF_PACF:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;4. FUNCIONES DE AUTOCORRELACIÓN (ACF) Y DE AUTOCORRELACIÓN PARCIAL (PACF) DE LAS SERIES (DEBEN SER ESTACIONARIAS)", 
+                        gr.HTML("&nbsp;&nbsp;4. FUNCIONES DE AUTOCORRELACIÓN (ACF) Y DE AUTOCORRELACIÓN PARCIAL (PACF)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         ACF_PACF_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -9043,7 +9035,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 5: CÁLCULO DE AUTOCORRELACIONES DE LAS SERIES
 
             # region SUBPESTAÑA 6: APLICACIÓN DEL MODELO ARIMA
-            with gr.Tab("Modelo ARIMA") as subtab_ARIMA:
+            with gr.Tab("ARIMA") as subtab_ARIMA:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20): 
                         gr.HTML("&nbsp;&nbsp;5. APLICACIÓN DEL MODELO PREDICTIVO ARIMA",
@@ -9167,7 +9159,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 5: APLICACIÓN DEL MODELO ARIMA
 
             # region SUBPESTAÑA 7: TRANSFORMADAS DE FOURIER
-            with gr.Tab("Transformada de Fourier") as subtab_Fourier:
+            with gr.Tab("FOURIER") as subtab_Fourier:
                 
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20): 
@@ -10123,13 +10115,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA BOSQUES ALEATORIOS (YAEL)
-        with gr.Tab("RF Autorregresivo"):
+        with gr.Tab("RF AUTORREGRESIVO"):
             # DEFINICIÓN DEL ESTADO (Variable invisible en memoria)
             df_rf = gr.State()
             df_combinar_rf = gr.State()
 
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE BOSQUES ALEATORIOS", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE RANDOM FOREST AUTORREGRESIVO", elem_classes="title-text")
 
             with gr.Row():
             # COLUMNA IZQUIERDA (COMBOS)
@@ -10157,7 +10149,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # COLUMNA DERECHA (SUBPESTAÑA)
                 with gr.Column(scale=20):
                     #SUBPESTAÑA RF: 
-                    with gr.Tab("Modelo") as rfPredecir:
+                    with gr.Tab("MODELO") as rfPredecir:
                         with gr.Row():
                              with gr.Column(elem_classes="custom-tab-2", scale=20):  
                                 gr.HTML(value="PREDICCION DE RENDIMIENTO", elem_classes="subtitle-text")
@@ -10174,7 +10166,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             tableOutErrorP_rf = gr.Dataframe(interactive=False, max_height=335)
 
                     #SUBPESTAÑA DataSet:
-                    with gr.Tab("Set de Datos") as rfEda:
+                    with gr.Tab("SET DE DATOS") as rfEda:
                         with gr.Row():
                             with gr.Column(elem_classes="custom-tab-2", scale=20):   
                                  gr.HTML(value="CONTENIDO DE LAS VARIABLES", elem_classes="subtitle-text")
@@ -10230,7 +10222,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA REDES NEURONALES (MARCO)
-        with gr.Tab("Red LSTM") as tab_NN:
+        with gr.Tab("RED LSTM") as tab_NN:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS CON RED NEURONAL LSTM", elem_classes="title-text")
             
@@ -10257,7 +10249,6 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                     nn_iter = gr.Number(show_label=False, value=100)
                     # nn_btn_train = gr.Button("Predecir", variant="primary", elem_classes="custom-button3")
 
-<<<<<<< HEAD
                 '''
                 with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
                     with gr.Row():
@@ -10272,20 +10263,6 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                         nn_plot_mlp = gr.Plot(show_label=False)
                         nn_table_mlp = gr.Dataframe(show_label=False)
                 '''
-=======
-            #    with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
-            #       with gr.Row():
-            #            with gr.Column(elem_classes="custom-tab-2", scale=20):  
-            #                gr.HTML(value="PREDICCIÓN CON VARIABLES EXTERNAS (X MULTIVARIADO)", elem_classes="subtitle-text")
-            #            with gr.Column(min_width=150):
-            #                nn_btn_train_mlp = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
-            #        with gr.Column(scale=20, elem_classes="custom-tab"):
-            #            # --- Timeline / Year Range ---
-            #            nn_timeline_mlp = gr.HTML(elem_classes="info-display-3a")
-            #            nn_stats_mlp = gr.HTML(elem_classes="info-display-3a")
-            #            nn_plot_mlp = gr.Plot(show_label=False)
-            #            nn_table_mlp = gr.Dataframe(show_label=False)
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
                
                 # with gr.Tab("Red LSTM", scale=20) as tab_NN_lstm:
                 with gr.Column(scale=20):
@@ -10307,10 +10284,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador,
-<<<<<<< HEAD
                          # nn_timeline_mlp,
-=======
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
                          nn_timeline_lstm]
             )
             
@@ -10318,29 +10292,21 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador, 
-<<<<<<< HEAD
                          # nn_timeline_mlp,
-=======
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
                          nn_timeline_lstm]
             )
 
             nn_provincia.change(
                 fn=tab_NN_on_prov_change,
                 inputs=[nn_cultivo, nn_provincia],
-<<<<<<< HEAD
                 outputs=[nn_departamento, 
                          # nn_timeline_mlp,
                          nn_timeline_lstm]
-=======
-                outputs=[nn_departamento, nn_timeline_lstm]
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
             )
 
             nn_departamento.change(
                 fn=tab_NN_on_dept_change,
                 inputs=[nn_cultivo, nn_provincia, nn_departamento],
-<<<<<<< HEAD
                 outputs=[# nn_timeline_mlp,
                         nn_timeline_lstm]
             )
@@ -10356,20 +10322,6 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             MLP_pred1, MLP_pred2, MLP_pred3]
             )
             '''
-=======
-                outputs=[nn_timeline_lstm]
-            )
-
-
-        #    nn_btn_train_mlp.click(
-        #        fn=tab_NN_train_and_predict_mlp,
-        #        inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
-        #        outputs=[nn_stats_mlp, nn_plot_mlp, nn_table_mlp,
-        #                    NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
-        #                    NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
-        #                    MLP_pred1, MLP_pred2, MLP_pred3]
-        #    )
->>>>>>> 748a1938af3c6a94e1428e374eacaaa3afb8b481
 
             nn_btn_train_lstm.click(
                 fn=tab_NN_train_and_predict_lstm,
@@ -10383,7 +10335,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA COMPARATIVA DE MODELOS (JORGE)
-        with gr.Tab("Comparativa de Modelos") as tab_CM:
+        with gr.Tab("COMPARATIVA") as tab_CM:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVO PARA LAS PRÓXIMAS TRES CAMPAÑAS", elem_classes="title-text")
 
@@ -10435,7 +10387,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA CONCLUSIONES
-        with gr.Tab("Conclusiones") as tab_conclusiones:
+        with gr.Tab("CONCLUSIONES") as tab_conclusiones:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PRINCIPALES MÉTRICAS DE LOS MODELOS APLICADOS", elem_classes="title-text")
 
