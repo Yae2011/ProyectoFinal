@@ -76,7 +76,7 @@ Para ejecutar la aplicación se recomienda utilizar un entorno virtual (venv):
 2. Crear y activar el entorno virtual:
    
    En macOS / Linux:
-   python3 -m venv venv
+   python3.12 -m venv venv
    source venv/bin/activate
 
    En Windows:
@@ -88,7 +88,7 @@ Para ejecutar la aplicación se recomienda utilizar un entorno virtual (venv):
    pip install -r requirements.txt
 
 4. Lanzar la aplicación productiva:
-   python appDiplo.py
+   python3.12 appDiplo.py
 
 5. Abre la URL local (normalmente http://127.0.0.1:7860) en el navegador.
 

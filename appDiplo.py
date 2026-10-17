@@ -26,6 +26,7 @@ from typing import List, Union
 import pymannkendall as mk
 import warnings # Para anular los warnings de falta de convergencia en los modelos
 from sklearn.preprocessing import MinMaxScaler
+
 # 1. Configuración de variables de entorno ANTES de importar TensorFlow/Keras
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0' # Desactivar optimizaciones oneDNN
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Suprimir logs de C++ (INFO, WARNING, ERROR)
@@ -34,6 +35,7 @@ os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3' # Desactivar avisos de compilación op
 os.environ['TF_ENABLE_GPU_GARBAGE_COLLECTION'] = '0' # Desactivar avisos de asignación de dispositivos (GPU/CPU)
 import tensorflow as tf
 import absl.logging
+
 # 2. Configurar el nivel de severidad en el logger de TensorFlow y Abseil
 absl.logging.set_verbosity(absl.logging.ERROR)
 tf.get_logger().setLevel('ERROR')
@@ -65,10 +67,22 @@ from sklearn.compose import ColumnTransformer
 # endregion IMPORTACIÓN DE LIBRERÍAS
 
 
+# comienzo prg MAF 
+# Uso en Huggings
+try:
+    import spaces
+    @spaces.GPU
+    def _dummy():
+        pass
+except ImportError:
+    pass  # ejecución local: no hay ZeroGPU
+
+# fin prg MAF
+
 # region CONSTANTES Y DICCIONARIOS
 # --- Constantes ---
-DATA_PATH = "./datasets"
-IMAGE_PATH = "./images"
+DATA_PATH = "./Datasets"
+IMAGE_PATH = "./Images"
 FILE_MAP = {
     "ARROZ": "arroz_depurado.csv",
     "AVENA": "avena_depurado.csv",
@@ -102,10 +116,10 @@ YEAR_MAX = 2024 # ültimo año de la serie de datos
 
 # Se cargan las descripciones de las variables de los datasets en un diccionario
 # para títulos de gráficos de evolución de cultivos
-variables = os.path.join(DATA_PATH, "nombres_largos.csv")
+variables = os.path.join(DATA_PATH, "Nombres_Largos.csv")
 df_vars = pd.read_csv(variables, header=None, encoding='latin-1', sep=',')
 dict_nlargos = df_vars.set_index(df_vars.columns[0])[df_vars.columns[1]].to_dict()
-variables = os.path.join(DATA_PATH, "nombres_cortos.csv")
+variables = os.path.join(DATA_PATH, "Nombres_Cortos.csv")
 df_vars = pd.read_csv(variables, header=None, encoding='latin-1', sep=',')
 dict_ncortos = df_vars.set_index(df_vars.columns[0])[df_vars.columns[1]].to_dict()
 # endregion CONSTANTES Y DICCIONARIOS
@@ -3825,7 +3839,12 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
         'Sup': intervalos.iloc[:, 1].values
     })
 
-    pred1, pred2, pred3, pred4, pred5 = df_plot_pred['Valor'].round(2)
+    # pred1, pred2, pred3, pred4, pred5 = df_plot_pred['Valor'].round(2)
+    # Valores predichos redondeados (funciona con cualquier n)
+    preds = df_plot_pred['Valor'].round(2).tolist()
+    # Se completan hasta 3 posiciones por si n < 3
+    preds += ['---'] * (3 - len(preds))
+    pred1, pred2, pred3 = preds[:3]
 
     # Se agrega al df histórico el primer dato del df predicho para 
     # que no quede un salto en el gráfico.
@@ -5330,9 +5349,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 img_path_1 = os.path.join(current_dir, "Images", "App_bg.png")
 img_path_2 = os.path.join(current_dir, "Images", "Title_bg.png")
 img_path_3 = os.path.join(current_dir, "Images", "Container_bg.png")
-img_path_4 = os.path.join(current_dir, "Images", "header_bg.png")
+img_path_4 = os.path.join(current_dir, "Images", "Header_bg.png")
 img_path_5 = os.path.join(current_dir, "Images", "portrait_bg.png")
-vid_path_1 = os.path.join(current_dir, "Images", "portrait_bg.mp4")
+vid_path_1 = os.path.join(current_dir, "Images", "Portrait_bg.mp4")
 fondo_app = media_to_base64(img_path_1)
 fondo_titulo = media_to_base64(img_path_2)
 fondo_contenedor = media_to_base64(img_path_3)
@@ -5586,16 +5605,22 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     ultimo_anio_historico = int(periodos_historicos_unicos[-1])
 
     # 3. Mapeo de indicadores y definición de la variable objetivo (target)
-    dict_ncortos = {
-        "SUP.SEMB.[ha]": "sup_sem_ha",
-        "SUP.COS.[ha]": "sup_cos_ha",
-        "REND.[kg/ha]": "rend_kgxha",
-        "PROD.[ton]": "prod_ton",
+    mapa_cols = {
+        'SUP.SEMB.[HA]': 'sup_sem_ha',
+        'SUP.COS.[HA]': 'sup_cos_ha',
+        'REND.[KG/HA]': 'rend_kgxha',
+        'PROD.[TON]': 'prod_ton'
     }
-    indicador = dict_ncortos.get(
-        indicador_seleccionado, indicador_seleccionado
-    )
+    mapa_unidad = {
+        'SUP.SEMB.[HA]': ' ha',
+        'SUP.COS.[HA]': ' ha',
+        'REND.[KG/HA]': ' kg/ha',
+        'PROD.[TON]': ' ton'
+    }
+    clave = str(indicador_seleccionado).strip().upper()
+    indicador = mapa_cols.get(clave, indicador_seleccionado)
     target = indicador
+    unidad = mapa_unidad.get(clave, "")
 
     if target not in df_trabajo.columns:
         return (None, f"Error: No se encontró la columna objetivo '{target}'.",
@@ -5603,50 +5628,62 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
                 None, None, None, None, None, None, None, None,
                 None, None, None, None, None)
 
-    unidad_ind = {
-        "SUP.SEMB.[ha]": " ha",
-        "SUP.COS.[ha]": " ha",
-        "REND.[kg/ha]": " kg/ha",
-        "PROD.[ton]": " ton",
-    }
-    unidad = unidad_ind.get(indicador_seleccionado, "")
+    # ------------------------------------------------------------------
+    # MODELO RF AUTORREGRESIVO: el valor de cada año se explica con los
+    # valores de los N_LAGS años anteriores de la MISMA serie (rezagos).
+    # ------------------------------------------------------------------
+    N_LAGS = 3      # años previos usados como predictores
+    N_FUTURO = 5    # años a proyectar
 
-    # Lista de todos los indicadores técnicos del dataset que deseas excluir de X
-    indicadores_tecnicos = ["sup_sem_ha", "sup_cos_ha", "rend_kgxha", "prod_ton"]
-
-    # Separación de características (X) excluyendo el target, periodo, departamento y todos los indicadores
-    columnas_a_excluir = [target, "periodo", "departamento"] + indicadores_tecnicos
-
-    # Separación de características (X) y variable objetivo (y)
-    X = df_trabajo.drop(columns=columnas_a_excluir, errors="ignore")
-    y = df_trabajo[target]
-
-    # 4. División de datos (Train / Test) y entrenamiento del Random Forest
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    # Serie anual única (si hay varias filas por año se promedian)
+    serie = (
+        df_trabajo.groupby("periodo")[target].mean().sort_index().astype(float)
     )
 
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    if len(serie) < N_LAGS + 9:
+        return (None, "Error: Registros insuficientes para el modelo autorregresivo "
+                f"(mínimo {N_LAGS + 9} años con datos).",
+                None, None, None,
+                None, None, None, None, None, None, None, None,
+                None, None, None, None, None)
+
+    # Matriz supervisada: y(t) ~ y(t-1), y(t-2), ..., y(t-N_LAGS)
+    df_lags = pd.DataFrame({"periodo": serie.index, "y": serie.values})
+    for k in range(1, N_LAGS + 1):
+        df_lags[f"lag_{k}"] = df_lags["y"].shift(k)
+    df_lags = df_lags.dropna().reset_index(drop=True)
+
+    cols_lag = [f"lag_{k}" for k in range(1, N_LAGS + 1)]
+    X = df_lags[cols_lag]
+    y = df_lags["y"]
+
+    # 4. División CRONOLÓGICA (los últimos años quedan para test, sin mezclar)
+    n_test_anios = max(3, int(round(len(df_lags) * 0.2)))
+    X_train, X_test = X.iloc[:-n_test_anios], X.iloc[-n_test_anios:]
+    y_train, y_test = y.iloc[:-n_test_anios], y.iloc[-n_test_anios:]
+    periodos_test = df_lags["periodo"].iloc[-n_test_anios:].values
+
+    model = RandomForestRegressor(n_estimators=300, random_state=42)
     model.fit(X_train, y_train)
 
-    # 5. Evaluación de métricas
+    # 5. Evaluación de métricas (predicción un paso adelante sobre el test)
     predicciones = model.predict(X_test)
     mse = mean_squared_error(y_test, predicciones)
     mae = mean_absolute_error(y_test, predicciones)
     r2 = r2_score(y_test, predicciones)
     # --- YAE: CÁLCULO DEL R² AJUSTADO ---
-    n = len(y_test)  # Cantidad de muestras en el conjunto de test
-    p = X_test.shape[1]  # Cantidad de variables (features) usadas
+    n = len(y_test)      # Cantidad de muestras en el conjunto de test
+    p = X_test.shape[1]  # Cantidad de rezagos usados
     r2_adj = 1 - ((1 - r2) * (n - 1) / (n - p - 1)) if (n - p - 1) > 0 else r2
 
-    # 6. Cálculo de importancia de variables para la métrica
+    # 6. Importancia de cada rezago
     importancias = model.feature_importances_
     df_imp = pd.DataFrame(
         {"Variable_Tecnica": X.columns, "Importancia": importancias}
     ).sort_values(by="Importancia", ascending=True)
 
     df_imp["Variable"] = df_imp["Variable_Tecnica"].apply(
-        lambda x: dict_ncortos.get(x, x).upper()
+        lambda x: f"AÑO t-{x.split('_')[1]}"
     )
 
     # 7. Gráfico de Barras Horizontales - Importancia de Factores
@@ -5656,12 +5693,12 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
         y="Variable",
         orientation="h",
         title=(
-            f"VARIABLES MÁS INFLUYENTES PARA "
+            f"REZAGOS MÁS INFLUYENTES PARA "
             f"{indicador_seleccionado.upper()} DE "
             f"{cultivo_seleccionado.upper()} EN "
             f"{provincia_seleccionada.upper()} - {depto_seleccionado.upper()}"
         ),
-        labels={"Importancia": "Nivel de Influencia", "Variable": "Factor"},
+        labels={"Importancia": "Nivel de Influencia", "Variable": "Rezago"},
         color="Importancia",
         color_continuous_scale="Greens",
     )
@@ -5679,9 +5716,6 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     )
 
     # 9. Consolidación de Resultados de Test agrupados por año
-    indices_test = X_test.index
-    periodos_test = df_trabajo.loc[indices_test, "periodo"]
-
     df_resultados = pd.DataFrame(
         {"Año": periodos_test, "Real": y_test.values, "Prediccion": predicciones}
     )
@@ -5707,19 +5741,17 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     # Se genera el rango garantizando que el primer año futuro sea (ultimo_anio_historico + 1)
     anios_futuros = [ultimo_anio_historico + i for i in range(1, 6)]
 
-    # Se toma la media del perfil de variables de los últimos 3 años históricos como baseline de predicción
-    ultimos_periodos = periodos_historicos_unicos[-3:]
-    X_reciente = df_trabajo[df_trabajo["periodo"].isin(ultimos_periodos)].drop(
-        columns=columnas_a_excluir, errors="ignore"
+    # Predicción RECURSIVA: cada valor predicho se reutiliza como rezago del siguiente
+    historial = list(serie.values[-N_LAGS:])
+    predicciones_futuras = []
+    for _ in range(N_FUTURO):
+        x_nuevo = pd.DataFrame(
+            [[historial[-k] for k in range(1, N_LAGS + 1)]], columns=cols_lag
         )
-    vector_futuro = X_reciente.mean(axis=0).to_frame().T
-
-    # Asegurarnos de que el orden y las columnas coincidan exactamente con X.columns
-    vector_futuro = vector_futuro.reindex(columns=X.columns, fill_value=0)
-    
-    # Replicación del vector para los 5 períodos proyectados
-    X_futuro = pd.concat([vector_futuro] * 5, ignore_index=True)
-    predicciones_futuras = model.predict(X_futuro)
+        y_nuevo = float(model.predict(x_nuevo)[0])
+        predicciones_futuras.append(y_nuevo)
+        historial.append(y_nuevo)
+    predicciones_futuras = np.array(predicciones_futuras)
 
     # Formateo de las cadenas de texto para cada una de las 5 predicciones
     pred1_text = f"{predicciones_futuras[0]:.2f}" + unidad
@@ -5734,8 +5766,8 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     # Serie Histórica Real
     figPrediccion.add_trace(
         go.Scatter(
-            x=df_anual["Año"],
-            y=df_anual["Real"],
+            x=serie.index,
+            y=serie.values.round(2),
             mode="lines+markers",
             name="Actual",
             line=dict(color="blue", width=2),
@@ -5749,7 +5781,7 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
             x=df_anual["Año"],
             y=df_anual["Prediccion"],
             mode="lines+markers",
-            name="Predicho (RF)",
+            name="Predicho (RF autorregresivo)",
             line=dict(color="red", width=2, dash="dash"),
             marker=dict(symbol="circle", size=6),
         )
@@ -5767,7 +5799,7 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
             x=x_proyeccion,
             y=y_proyeccion,
             mode="lines+markers",
-            name="Proyección (5 años)",
+            name="Proyección recursiva (5 años)",
             line=dict(color="orange", width=2, dash="dot"),
             marker=dict(symbol="diamond", size=7),
         )
@@ -5903,22 +5935,22 @@ def tab_NN_train_and_predict_mlp(dataset_type, provincia, departamento, indicado
     macroeconómicas y sectoriales) para predecir un indicador agrícola.
     Aplica Codificación Ordinal a fenómenos climáticos y One-Hot Encoding a variables políticas.
     """
-    # Mapeo de nombres cortos a columnas internas del dataset
-    dict_ncortos = {
-        'SUP.SEMB.[ha]': 'sup_sem_ha',
-        'SUP.COS.[ha]': 'sup_cos_ha',
-        'REND.[kg/ha]': 'rend_kgxha',
-        'PROD.[ton]': 'prod_ton'
+    # Mapeo de nombres cortos a columnas internas (sin distinguir mayúsculas)
+    mapa_cols = {
+        'SUP.SEMB.[HA]': 'sup_sem_ha',
+        'SUP.COS.[HA]': 'sup_cos_ha',
+        'REND.[KG/HA]': 'rend_kgxha',
+        'PROD.[TON]': 'prod_ton'
     }
-    indicador = dict_ncortos.get(indicador_nc, indicador_nc)
-
-    unidad_ind = {
-        'SUP.SEMB.[ha]': ' ha',
-        'SUP.COS.[ha]': ' ha',
-        'REND.[kg/ha]': ' kg/ha',
-        'PROD.[ton]': ' ton'
+    mapa_unidad = {
+        'SUP.SEMB.[HA]': ' ha',
+        'SUP.COS.[HA]': ' ha',
+        'REND.[KG/HA]': ' kg/ha',
+        'PROD.[TON]': ' ton'
     }
-    unidad = unidad_ind.get(indicador_nc, "")
+    clave = str(indicador_nc).strip().upper()
+    indicador = mapa_cols.get(clave, indicador_nc)
+    unidad = mapa_unidad.get(clave, "")
 
     # Se filtra el dataset de cultivo
     df_cultivo, provincias = load_data(dataset_type)
@@ -6088,22 +6120,22 @@ def tab_NN_train_and_predict_lstm(dataset_type, provincia, departamento, indicad
     del indicador agrícola, omitiendo variables externas exógenas.
     Mantiene la misma estructura de retorno y formato que la función original MLP.
     """
-    # Mapeo de nombres cortos a columnas internas del dataset
-    dict_ncortos = {
-        'SUP.SEMB.[ha]': 'sup_sem_ha',
-        'SUP.COS.[ha]': 'sup_cos_ha',
-        'REND.[kg/ha]': 'rend_kgxha',
-        'PROD.[ton]': 'prod_ton'
+    # Mapeo de nombres cortos a columnas internas (sin distinguir mayúsculas)
+    mapa_cols = {
+        'SUP.SEMB.[HA]': 'sup_sem_ha',
+        'SUP.COS.[HA]': 'sup_cos_ha',
+        'REND.[KG/HA]': 'rend_kgxha',
+        'PROD.[TON]': 'prod_ton'
     }
-    indicador = dict_ncortos.get(indicador_nc, indicador_nc)
-
-    unidad_ind = {
-        'SUP.SEMB.[ha]': ' ha',
-        'SUP.COS.[ha]': ' ha',
-        'REND.[kg/ha]': ' kg/ha',
-        'PROD.[ton]': ' ton'
+    mapa_unidad = {
+        'SUP.SEMB.[HA]': ' ha',
+        'SUP.COS.[HA]': ' ha',
+        'REND.[KG/HA]': ' kg/ha',
+        'PROD.[TON]': ' ton'
     }
-    unidad = unidad_ind.get(indicador_nc, "")
+    clave = str(indicador_nc).strip().upper()
+    indicador = mapa_cols.get(clave, indicador_nc)
+    unidad = mapa_unidad.get(clave, "")
 
     # Se filtra el dataset de cultivo sin incorporar variables externas
     df_cultivo, provincias = load_data(dataset_type)
@@ -10194,23 +10226,23 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                     gr.HTML("INDICADOR", elem_classes="info-display-7")
                     nn_indicador = gr.Dropdown(label="", choices=[], elem_classes="custom-dropdown-small")
                     gr.HTML("CAPAS OCULTAS", elem_classes="info-display-7")
-                    nn_hidden = gr.Textbox(show_label=False, value="10")
+                    nn_hidden = gr.Textbox(show_label=False, value="3,3", elem_classes="custom-textbox-small")
                     gr.HTML("CANT. ITERACIONES", elem_classes="info-display-7")
-                    nn_iter = gr.Number(show_label=False, value=1000)
+                    nn_iter = gr.Number(show_label=False, value=100)
                     # nn_btn_train = gr.Button("Predecir", variant="primary", elem_classes="custom-button3")
 
-                with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
-                    with gr.Row():
-                        with gr.Column(elem_classes="custom-tab-2", scale=20):  
-                            gr.HTML(value="PREDICCIÓN CON VARIABLES EXTERNAS (X MULTIVARIADO)", elem_classes="subtitle-text")
-                        with gr.Column(min_width=150):
-                            nn_btn_train_mlp = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
-                    with gr.Column(scale=20, elem_classes="custom-tab"):
-                        # --- Timeline / Year Range ---
-                        nn_timeline_mlp = gr.HTML(elem_classes="info-display-3a")
-                        nn_stats_mlp = gr.HTML(elem_classes="info-display-3a")
-                        nn_plot_mlp = gr.Plot(show_label=False)
-                        nn_table_mlp = gr.Dataframe(show_label=False)
+            #    with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
+            #       with gr.Row():
+            #            with gr.Column(elem_classes="custom-tab-2", scale=20):  
+            #                gr.HTML(value="PREDICCIÓN CON VARIABLES EXTERNAS (X MULTIVARIADO)", elem_classes="subtitle-text")
+            #            with gr.Column(min_width=150):
+            #                nn_btn_train_mlp = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
+            #        with gr.Column(scale=20, elem_classes="custom-tab"):
+            #            # --- Timeline / Year Range ---
+            #            nn_timeline_mlp = gr.HTML(elem_classes="info-display-3a")
+            #            nn_stats_mlp = gr.HTML(elem_classes="info-display-3a")
+            #            nn_plot_mlp = gr.Plot(show_label=False)
+            #            nn_table_mlp = gr.Dataframe(show_label=False)
                
                 with gr.Tab("Red LSTM", scale=20) as tab_NN_lstm:
                     with gr.Row():
@@ -10231,37 +10263,37 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador,
-                         nn_timeline_mlp, nn_timeline_lstm]
+                         nn_timeline_lstm]
             )
             
             nn_cultivo.change(
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador, 
-                         nn_timeline_mlp, nn_timeline_lstm]
+                         nn_timeline_lstm]
             )
 
             nn_provincia.change(
                 fn=tab_NN_on_prov_change,
                 inputs=[nn_cultivo, nn_provincia],
-                outputs=[nn_departamento, nn_timeline_mlp, nn_timeline_lstm]
+                outputs=[nn_departamento, nn_timeline_lstm]
             )
 
             nn_departamento.change(
                 fn=tab_NN_on_dept_change,
                 inputs=[nn_cultivo, nn_provincia, nn_departamento],
-                outputs=[nn_timeline_mlp, nn_timeline_lstm]
+                outputs=[nn_timeline_lstm]
             )
 
 
-            nn_btn_train_mlp.click(
-                fn=tab_NN_train_and_predict_mlp,
-                inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
-                outputs=[nn_stats_mlp, nn_plot_mlp, nn_table_mlp,
-                            NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
-                            NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
-                            MLP_pred1, MLP_pred2, MLP_pred3]
-            )
+        #    nn_btn_train_mlp.click(
+        #        fn=tab_NN_train_and_predict_mlp,
+        #        inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
+        #        outputs=[nn_stats_mlp, nn_plot_mlp, nn_table_mlp,
+        #                    NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
+        #                    NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
+        #                    MLP_pred1, MLP_pred2, MLP_pred3]
+        #    )
 
             nn_btn_train_lstm.click(
                 fn=tab_NN_train_and_predict_lstm,
@@ -10392,5 +10424,6 @@ if __name__ == "__main__":
     # allowed_paths DEBE incluir las rutas absolutas de las carpetas que contienen recursos
     app.launch(
         inbrowser=True,
+        ssr_mode=False,
         allowed_paths=[current_dir, images_folder]
     )
