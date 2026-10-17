@@ -5611,8 +5611,14 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     }
     unidad = unidad_ind.get(indicador_seleccionado, "")
 
+    # Lista de todos los indicadores técnicos del dataset que deseas excluir de X
+    indicadores_tecnicos = ["sup_sem_ha", "sup_cos_ha", "rend_kgxha", "prod_ton"]
+
+    # Separación de características (X) excluyendo el target, periodo, departamento y todos los indicadores
+    columnas_a_excluir = [target, "periodo", "departamento"] + indicadores_tecnicos
+
     # Separación de características (X) y variable objetivo (y)
-    X = df_trabajo.drop(columns=[target, "periodo"], errors="ignore")
+    X = df_trabajo.drop(columns=columnas_a_excluir, errors="ignore")
     y = df_trabajo[target]
 
     # 4. División de datos (Train / Test) y entrenamiento del Random Forest
@@ -5704,10 +5710,13 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
     # Se toma la media del perfil de variables de los últimos 3 años históricos como baseline de predicción
     ultimos_periodos = periodos_historicos_unicos[-3:]
     X_reciente = df_trabajo[df_trabajo["periodo"].isin(ultimos_periodos)].drop(
-        columns=[target, "periodo"], errors="ignore"
-    )
+        columns=columnas_a_excluir, errors="ignore"
+        )
     vector_futuro = X_reciente.mean(axis=0).to_frame().T
 
+    # Asegurarnos de que el orden y las columnas coincidan exactamente con X.columns
+    vector_futuro = vector_futuro.reindex(columns=X.columns, fill_value=0)
+    
     # Replicación del vector para los 5 períodos proyectados
     X_futuro = pd.concat([vector_futuro] * 5, ignore_index=True)
     predicciones_futuras = model.predict(X_futuro)
