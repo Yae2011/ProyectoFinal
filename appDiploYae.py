@@ -5610,7 +5610,8 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
         "PROD.[ton]": " ton",
     }
     unidad = unidad_ind.get(indicador_seleccionado, "")
-
+    
+    #YAE2
     # Lista de todos los indicadores técnicos del dataset que deseas excluir de X
     indicadores_tecnicos = ["sup_sem_ha", "sup_cos_ha", "rend_kgxha", "prod_ton"]
 
@@ -5717,7 +5718,7 @@ def rf_cargaPredecir(dfData, cultivo_seleccionado, provincia_seleccionada,
 
     # Asegurarnos de que el orden y las columnas coincidan exactamente con X.columns
     vector_futuro = vector_futuro.reindex(columns=X.columns, fill_value=0)
-    
+
     #YAE2
     #X_reciente = df_trabajo[df_trabajo["periodo"].isin(ultimos_periodos)].drop(
     #    columns=[target, "periodo"], errors="ignore"
