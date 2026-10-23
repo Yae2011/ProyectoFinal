@@ -69,6 +69,7 @@ from sklearn.compose import ColumnTransformer
 
 # comienzo prg MAF 
 # Uso en Huggings
+
 try:
     import spaces
     @spaces.GPU
@@ -3602,9 +3603,11 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
             </div>
             """
         if graf:
-            return None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
         else:
-            return pd.DataFrame(), reporte, None, None, None, None, None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
 
     # Se verifica que la serie sea estacionaria (NO_EXISTE = sin prueba ADF, no se verificó estacionariedad)
     if d == NO_EXISTE:
@@ -3616,9 +3619,11 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
                 la prueba ADF para verificar ESTACIONARIEDAD.</div>
             """
         if graf:
-            return None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
         else:
-            return pd.DataFrame(), reporte, None, None, None, None, None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
     
     # Se verifica que el dataframe con la serie diferenciada ya exista
     if p == NO_EXISTE or q == NO_EXISTE:
@@ -3630,9 +3635,11 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
                 el coeficiente <i style='color: #FF0000;'>q</i> con la FUNCIÓN DE AUTOCORRELACIÓN PARCIAL (PACF).</div>
             """
         if graf:
-            return None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
         else:
-            return pd.DataFrame(), reporte, None, None, None, None, None
+            return (pd.DataFrame(), reporte, None, None, None, None, 
+                    None, None, None, None, None, None, None, None, None, None)
     
     # Se convierte el nombre corto del  "indicador" a su nombre original
     ind_orig = next((k for k, v in dict_ncortos.items() if v == indicador), indicador)
@@ -3669,7 +3676,8 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
                     "<i>p</i>  y <i>q</i> calculados.<br>"
                     f"<i>p</i> = {p}; <i>q</i> = {q}.</div>"
                     )
-        return pd.DataFrame(), reporte, None, None, None, None, None
+        return (pd.DataFrame(), reporte, None, None, None, None, 
+                None, None, None, None, None, None, None, None, None, None)
 
 
 
@@ -3695,8 +3703,14 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
                     }
                 )
     except Exception as e:
-        return f"Error al ajustar el modelo: {str(e)}", None, None, None, None
-
+        reporte = """
+            <div style="padding:15px; border:2px solid #ffa000; background-color:#fff9c4; border-radius:8px;">
+                <strong style="color:#f57c00;"> ERROR EN EL ANÁLISIS:</strong><br>
+                Error al ajustar el modelo.</div>
+            """
+        return (pd.DataFrame(), reporte, None, None, None, None, 
+                None, None, None, None, None, None, None, None, None, None)
+    
     residuos = resultado.resid
     n_obs = len(serie)
     lag_val = min(10, n_obs // 5)
@@ -3717,6 +3731,22 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
     rmse_val = np.sqrt(np.mean(residuos_raw**2))
     mape_val = np.mean(np.abs(residuos_raw / serie)) * 100
 
+
+    # CÁLCULO DEL R² Y R² AJUSTADO
+    # 1. Obtenemos los valores ajustados dentro de la muestra (in-sample)
+    valores_ajustados = resultado.fittedvalues
+    # 2. Suma de los cuadrados de los residuos (SS_res) y Suma total de los cuadrados (SS_tot)
+    ss_res = np.sum((serie - valores_ajustados)**2)
+    ss_tot = np.sum((serie - np.mean(serie))**2)
+    # 3. Cálculo del coeficiente de determinación R² estándar
+    r2_val = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+    # 4. Cálculo del R² ajustado penalizando por el número de parámetros (k_params) y observaciones (n_obs)
+    if (n_obs - k_params - 1) > 0:
+        r2_adj_val = 1 - ((1 - r2_val) * (n_obs - 1) / (n_obs - k_params - 1))
+    else:
+        r2_adj_val = np.nan
+
+
     if k_params <= 2: complejidad = "Baja"
     elif k_params <= 4: complejidad = "Media"
     else: complejidad = "Alta"
@@ -3736,6 +3766,7 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
         "BIC (Bayesiano)": f"{bic_val:.2f}",
         "RMSE (Raíz Error Cuadrático Medio)": f"{rmse_val:,.2f}",
         "MAPE (Error Porcentual)": f"{mape_val:.2f}%",
+        "R² Ajustado": f"{r2_adj_val:.4f}" if not np.isnan(r2_adj_val) else "N/A",
         "Complejidad del Modelo": complejidad,
         "Nivel de Riesgo en Estimación": f"<span style='color: {color_riesgo};'>{riesgo}</span>"
     }
@@ -3839,12 +3870,7 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
         'Sup': intervalos.iloc[:, 1].values
     })
 
-    # pred1, pred2, pred3, pred4, pred5 = df_plot_pred['Valor'].round(2)
-    # Valores predichos redondeados (funciona con cualquier n)
-    preds = df_plot_pred['Valor'].round(2).tolist()
-    # Se completan hasta 3 posiciones por si n < 3
-    preds += ['---'] * (3 - len(preds))
-    pred1, pred2, pred3 = preds[:3]
+    pred1, pred2, pred3 = df_plot_pred['Valor'].round(2)
 
     # Se agrega al df histórico el primer dato del df predicho para 
     # que no quede un salto en el gráfico.
@@ -4308,10 +4334,11 @@ def tab_ST_ARIMA(df, indicador, p, d, q, n, graf=False):
     metrica1 = f"AIC = {aic_val:.2f}",
     metrica2 = f"BIC = {bic_val:.2f}",
     metrica3 = f"RMSE = {rmse_val:,.2f}",
-    metrica4 = f"R² aj. = "
+    metrica4 = f"R² aj. = {r2_adj_val:.4f}" if not np.isnan(r2_adj_val) else "R² aj. = N/A"
     
     if graf:
-        return fig_prediccion
+        return (None, None, fig_prediccion, None, None, None, 
+                        None, None, None, None, None, None, None, None, None, None)
     else:
         return (df_final, reporte_general, 
                 fig_prediccion, tabla_pred, 
@@ -6291,9 +6318,11 @@ def tab_NN_train_and_predict_lstm(dataset_type, provincia, departamento, indicad
 
     stats_text = (
         f"<b>MÉTRICAS DEL CONJUNTO DE PRUEBA (Últimos {test_size} años):</b><br>"
-        f"R²: {r2_test:.4f}<br>"
+        f"Dimensión de características de entrada (LSTM Timesteps): {time_steps}<br>"
         f"MSE: {mse_test:.4f}<br>"
-        f"Dimensión de características de entrada (LSTM Timesteps): {time_steps}"
+        f"MAE: {mae_test:.4f}<br>"
+        f"R²: {r2_test:.4f}<br>"
+        f"R² Ajustado: {r2_aj_val:.4f}<br>"
     )
 
     results_df = pd.DataFrame({
@@ -6666,11 +6695,11 @@ def tab_Dashboard_run(cultivo, provincia, departamento, year_min, year_max, indi
 def tab_CONC_show_conclusions(*args):
     """
     Consolida las variables de estado de los cinco modelos recibidas en un DataFrame de Pandas:
-    ARIMA 1, ARIMA 2, ARIMA 3, Random Forest, MLP Y LSTM.
+    ARIMA 1, ARIMA 2, ARIMA 3, RF Autorregresivo Y LSTM.
     Cada modelo aporta 10 métricas/variables y 3 valores predichos del indicador agrícola.
-    *args: recibe un unpacking de los 78 componentes gr.State de manera secuencial.
-    Returns: un pd.DataFrame de métricas (matriz de 10 filas x 6 columnas);
-             un pd.DataFrame de predicciones (matriz de 3 filas x 6 columnas);
+    *args: recibe un unpacking de los 65 componentes gr.State de manera secuencial.
+    Returns: un pd.DataFrame de métricas (matriz de 10 filas x 5 columnas);
+             un pd.DataFrame de predicciones (matriz de 3 filas x 5 columnas);
     """
 
     ### TABLA DE MÉTRICAS
@@ -6680,16 +6709,15 @@ def tab_CONC_show_conclusions(*args):
         "Indicador", "Serie", "Métrica 1", "Métrica 2", "Métrica 3", "Métrica 4"
     ]
     columnas_labels_tabla1 = ["ARIMA-1", "ARIMA-2", "ARIMA-3",
-                              "BOSQUE ALEATORIO", "RED MULTICAPA", "RED LSTM"]
+                              "RF AUTORREGRESIVO", "RED LSTM"]
 
-    # Separación sintáctica de los 60 argumentos recibidos en bloques de 10 para cada modelo
-    # args contiene [v1, v2, ..., v60]
+    # Separación sintáctica de los 50 argumentos recibidos en bloques de 10 para cada modelo
+    # args contiene [v1, v2, ..., v50]
     arima1_tabla1 = args[0:10]
     arima2_tabla1 = args[10:20]
     arima3_tabla1 = args[20:30]
     rf_tabla1     = args[30:40]
-    mlp_tabla1    = args[40:50]
-    lstm_tabla1   = args[50:60]
+    lstm_tabla1   = args[40:50]
 
     # Construcción de la matriz estructurada por columnas
     data = {
@@ -6697,8 +6725,7 @@ def tab_CONC_show_conclusions(*args):
         columnas_labels_tabla1[1]: arima2_tabla1,
         columnas_labels_tabla1[2]: arima3_tabla1,
         columnas_labels_tabla1[3]: rf_tabla1,
-        columnas_labels_tabla1[4]: mlp_tabla1,
-        columnas_labels_tabla1[5]: lstm_tabla1
+        columnas_labels_tabla1[4]: lstm_tabla1
     }
 
     # Creación del DataFrame asignando los índices requeridos (10 filas)
@@ -6711,15 +6738,14 @@ def tab_CONC_show_conclusions(*args):
     filas_labels_tabla2 = [
         "1", "2", "3"
     ]
-    columnas_labels_tabla2 = ["ARIMA-1", "ARIMA-2", "ARIMA-3", "BOSQUE ALEATORIO", "RED MULTICAPA", "RED LSTM"]
+    columnas_labels_tabla2 = ["ARIMA-1", "ARIMA-2", "ARIMA-3", "RF AUTORREGRESIVO", "RED LSTM"]
 
-    # Separación sintáctica de los 25 argumentos recibidos en bloques de 6 para cada modelo
-    arima1_tabla2 = args[60:63]
-    arima2_tabla2 = args[63:66]
-    arima3_tabla2 = args[66:69]
-    rf_tabla2     = args[69:72]
-    mlp_tabla2    = args[72:75]
-    lstm_tabla2   = args[75:78]
+    # Separación sintáctica de los 15 argumentos recibidos en bloques de 5 para cada modelo
+    arima1_tabla2 = args[50:53]
+    arima2_tabla2 = args[53:56]
+    arima3_tabla2 = args[56:59]
+    rf_tabla2     = args[59:62]
+    lstm_tabla2   = args[62:65]
 
     # Construcción de la matriz estructurada por columnas
     data = {
@@ -6727,8 +6753,7 @@ def tab_CONC_show_conclusions(*args):
         columnas_labels_tabla2[1]: arima2_tabla2,
         columnas_labels_tabla2[2]: arima3_tabla2,
         columnas_labels_tabla2[3]: rf_tabla2,
-        columnas_labels_tabla2[4]: mlp_tabla2,
-        columnas_labels_tabla2[5]: lstm_tabla2
+        columnas_labels_tabla2[4]: lstm_tabla2
     }
 
     # Creación del DataFrame asignando los índices requeridos (5 filas)
@@ -7022,7 +7047,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
     Retorna:
         pd.DataFrame con las columnas ['PROVINCIA', 'DEPARTAMENTO',
             'INIC', 'FIN', 'AÑOS', 'ELIM', 'IMP',
-            'HOLT-WINTERS', 'ARIMA', 'BOSQUES ALEATORIOS', 'RED LSTM'].
+            'HOLT-WINTERS', 'ARIMA', 'RF AUTORREGRESIVO', 'RED LSTM'].
     """
 
     # Obtener la lista de combinaciones requeridas y posibles errores
@@ -7032,7 +7057,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
     if errores or not combinaciones: # Retorna un DataFrame vacío
         return pd.DataFrame(columns=["PROVINCIA", "DEPARTAMENTO",
                                     "INIC", "FIN", "AÑOS", "ELIM", "IMP", "UTIL",
-                                    "HOLT-WINTERS", "ARIMA", "BOSQUES ALEATORIOS", "RED LSTM"])
+                                    "HOLT-WINTERS", "ARIMA", "RF AUTORREGRESIVO", "RED LSTM"])
 
     # Descartar el elemento 'cultivo' extrayendo únicamente 'provincia' y 'departamento' 
     combinaciones_filtradas = [(elem[1], elem[2]) for elem in combinaciones]
@@ -7042,7 +7067,7 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
 
     # Inicializar las columnas de los modelos predictivos con el valor por defecto "---"
     columnas_data = ["INIC", "FIN", "AÑOS", "ELIM", "IMP", "UTIL",
-                        "HOLT-WINTERS", "ARIMA", "BOSQUES ALEATORIOS", "RED LSTM"]
+                        "HOLT-WINTERS", "ARIMA", "RF AUTORREGRESIVO", "RED LSTM"]
     for col in columnas_data:
         df_predicciones[col] = "---"
 
@@ -7108,9 +7133,9 @@ def tab_CM_generar_predicciones(cultivo, provincia, departamento, indicador):
             # Evaluación de significancia estadística de la tendencia monótona
             flecha_tendencia: str = tab_CM_tendencia(secuencia_tendencia, alpha=0.05, tipo_flecha=1)
             # Se asigna la cadena formateada con las predicciones y el indicador visual a la celda
-            df_predicciones.at[idx, "BOSQUES ALEATORIOS"] = f"{flecha_tendencia} {predicciones}"
+            df_predicciones.at[idx, "RF AUTORREGRESIVO"] = f"{flecha_tendencia} {predicciones}"
         else:
-            df_predicciones.at[idx, "BOSQUES ALEATORIOS"] = "No aplica"
+            df_predicciones.at[idx, "RF AUTORREGRESIVO"] = "No aplica"
 
         ### SE CALCULA LSTM
         predicciones = tab_CM_lstm(df_preparado, 3)
@@ -7486,6 +7511,7 @@ def tab_CM_rf(df: pd.DataFrame, pasos: int) -> list[int]:
         # En caso de excepción crítica, se retorna el último valor sostenido en el horizonte
         ultimo_valor = int(np.round(df.iloc[-1, 1]))
         return [ultimo_valor] * pasos
+
 def tab_CM_lstm(df: pd.DataFrame, pasos: int) -> list[int]:
     
     """
@@ -7773,23 +7799,15 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
     RF_metrica2 = gr.State(value="---")
     RF_metrica3 = gr.State(value="---")
     RF_metrica4 = gr.State(value="---")
-    RF_prediccion = gr.State(value="Vars. Externas")
+    RF_prediccion = gr.State(value="Serie Temporal")
     RF_pred1 =gr.State(value="---")
     RF_pred2 =gr.State(value="---")
     RF_pred3 =gr.State(value="---")
-    NN_cultivo = gr.State(value="---")
-    NN_provincia = gr.State(value="---")
-    NN_departamento = gr.State(value="---")
-    NN_indicador = gr.State(value="---")
-    NN_serie = gr.State(value="---")
-    MLP_metrica1 = gr.State(value="---")
-    MLP_metrica2 = gr.State(value="---")
-    MLP_metrica3 = gr.State(value="---")
-    MLP_metrica4 = gr.State(value="---")
-    MLP_prediccion = gr.State(value="Vars. Externas")
-    MLP_pred1 =gr.State(value="---")
-    MLP_pred2 =gr.State(value="---")
-    MLP_pred3 =gr.State(value="---")
+    LSTM_cultivo = gr.State(value="---")
+    LSTM_provincia = gr.State(value="---")
+    LSTM_departamento = gr.State(value="---")
+    LSTM_indicador = gr.State(value="---")
+    LSTM_serie = gr.State(value="---")
     LSTM_metrica1 = gr.State(value="---")
     LSTM_metrica2 = gr.State(value="---")
     LSTM_metrica3 = gr.State(value="---")
@@ -7806,7 +7824,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
     with gr.Tabs():
 
         ###### PESTAÑA INICIO
-        with gr.Tab("Inicio"):
+        with gr.Tab("INICIO") as tab_inicio:
             with gr.Row():
                 with gr.Column(scale=8, elem_classes="portrait-bg-video"): # elem_classes="portrait-bg-1"):
                     gr.HTML(portada_video)
@@ -7846,7 +7864,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
         ###### PESTAÑA DASHBOARD (MARCO)
         # comienzo prg MAF
-        with gr.Tab("Dashboard") as tab_Dashboard:
+        with gr.Tab("DASHBOARD") as tab_Dashboard:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;CULTIVOS DE ARGENTINA - DASHBOARD", elem_classes="title-text")
          
@@ -7941,12 +7959,12 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 gr.HTML("&nbsp;&nbsp;VISUALIZACIÓN DE DATOS DE LOS PRINCIPALES CULTIVOS DE ARGENTINA", elem_classes="title-text")
             
             # region SUBPESTAÑA 1: VISUALIZACIÓN DE CULTIVOS
-            with gr.Tab("Dataset del Cultivo") as subtab_EDA_data:
+            with gr.Tab("DATASET DEL CULTIVO") as subtab_EDA_data:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
                         gr.HTML("&nbsp;&nbsp;1. DATASET DE CULTIVOS", elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
-                        btn_EDA_mostrar = gr.Button("Mostrar datos", variant="primary", visible=True, 
+                        btn_EDA_mostrar = gr.Button("Mostrar", variant="primary", visible=True, 
                                                 elem_classes="custom-button3")
 
                 with gr.Row():
@@ -8018,7 +8036,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 1: VISUALIZACIÓN DE CULTIVOS
 
             # region SUBPESTAÑA 2: VARIABLES EXTERNAS
-            with gr.Tab("Variables Coyunturales") as subtab_VARS_data:
+            with gr.Tab("VARIABLES COYUNTURALES") as subtab_VARS_data:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
                         gr.HTML("&nbsp;&nbsp;2. VARIABLES EXTERNAS DE LA COYUNTURA NACIONAL",
@@ -8294,13 +8312,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA COMPARACIÓN DE SERIES TEMPORALES (JORGE)
-        with gr.Tab("Series Temporales") as tab_ST:
+        with gr.Tab("SERIES TEMPORALES") as tab_ST:
 
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;ANÁLISIS Y COMPARACIÓN DE SERIES TEMPORALES", elem_classes="title-text")
             
             # region SUBPESTAÑA 1: SELECCIÓN DE LAS TRES SERIES TEMPORALES
-            with gr.Tab("Selección de las Series") as subtab_sel_series:
+            with gr.Tab("SERIES") as subtab_sel_series:
                
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2"):    
@@ -8546,10 +8564,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 1: SELECCIÓN DE LAS TRES SERIES TEMPORALES
 
             # region SUBPESTAÑA 2: DESCOMPOSICIÓN DE LAS SERIES TEMPORALES (MÉTODO STL)
-            with gr.Tab("Descomposición STL") as subtab_STL_decomp:
+            with gr.Tab("STL") as subtab_STL_decomp:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN DE LAS SERIES - MÉTODO STL (SEASONAL-TREND DECOMPOSITION USING LOESS) PARA SERIES CORTAS", 
+                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN POR MÉTODO STL (SEASONAL-TREND DECOMPOSITION USING LOESS)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         STL_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8731,10 +8749,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SECCION 2: DESCOMPOSICIÓN DE LAS TRES SERIES TEMPORALES (MÉTODO STL)
 
             # region SUBPESTAÑA 3: DESCOMPOSICIÓN DE LAS SERIES TEMPORALES (MÉTODO HOLT-WINTERS)
-            with gr.Tab("Descomposición Holt-Winters") as subtab_HW_decomp:
+            with gr.Tab("HOLT-WINTERS") as subtab_HW_decomp:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN DE LAS SERIES - MÉTODO HOLT-WINTERS (SUAVIZADO EXPONENCIAL)", 
+                        gr.HTML("&nbsp;&nbsp;2. DESCOMPOSICIÓN POR MÉTODO HOLT-WINTERS (SUAVIZADO EXPONENCIAL)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         HW_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8883,10 +8901,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SECCION 3: DESCOMPOSICIÓN DE LAS TRES SERIES TEMPORALES (MÉTODO HOLT-WINTERS)
 
             # region SUBPESTAÑA 4: DIFERENCIACIÓN DE LAS SERIES Y PRUEBA ADF
-            with gr.Tab("Diferenciación de las Series") as subtab_dif_series:
+            with gr.Tab("DIFERENCIACIÓN") as subtab_dif_series:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;3. DIFERENCIACIÓN DE LAS SERIES Y PRUEBA DE DICKEY-FÜLLER AUMENTADA (ADF) PARA VERIFICAR ESTACIONARIEDAD", 
+                        gr.HTML("&nbsp;&nbsp;3. DIFERENCIACIÓN DE LAS SERIES Y PRUEBA DE DICKEY-FÜLLER AUMENTADA (ADF)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         ADF_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -8928,10 +8946,10 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 4: DIFERENCIACIÓN DE LAS SERIES Y PRUEBA ADF
 
             # region SUBPESTAÑA 5: CÁLCULO DE AUTOCORRELACIONES DE LAS SERIES
-            with gr.Tab("ACF y PACF de las Series") as subtab_ACF_PACF:
+            with gr.Tab("ACF y PACF") as subtab_ACF_PACF:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20):    
-                        gr.HTML("&nbsp;&nbsp;4. FUNCIONES DE AUTOCORRELACIÓN (ACF) Y DE AUTOCORRELACIÓN PARCIAL (PACF) DE LAS SERIES (DEBEN SER ESTACIONARIAS)", 
+                        gr.HTML("&nbsp;&nbsp;4. FUNCIONES DE AUTOCORRELACIÓN (ACF) Y DE AUTOCORRELACIÓN PARCIAL (PACF)", 
                                 elem_classes="subtitle-text")
                     with gr.Column(min_width=150):
                         ACF_PACF_button = gr.Button("Calcular", variant="primary", visible=True, 
@@ -9017,7 +9035,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 5: CÁLCULO DE AUTOCORRELACIONES DE LAS SERIES
 
             # region SUBPESTAÑA 6: APLICACIÓN DEL MODELO ARIMA
-            with gr.Tab("Modelo ARIMA") as subtab_ARIMA:
+            with gr.Tab("ARIMA") as subtab_ARIMA:
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20): 
                         gr.HTML("&nbsp;&nbsp;5. APLICACIÓN DEL MODELO PREDICTIVO ARIMA",
@@ -9141,7 +9159,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # endregion SUBPESTAÑA 5: APLICACIÓN DEL MODELO ARIMA
 
             # region SUBPESTAÑA 7: TRANSFORMADAS DE FOURIER
-            with gr.Tab("Transformada de Fourier") as subtab_Fourier:
+            with gr.Tab("FOURIER") as subtab_Fourier:
                 
                 with gr.Row():
                     with gr.Column(elem_classes="custom-tab-2", scale=20): 
@@ -9604,7 +9622,6 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             ADF_desc1, leveldiff1, diff_graph1, ADF_info1,
                             level_diff_state_1,
                             ACF_desc1, ACF_error1, ACF_serie_1,
-                            PACF_graph1, PACF_info1,
                             ARIMA_p_1, ARIMA_q_1,
                             ARIMA_desc1, ARIMA_info1, ARIMA_serie_1,
                             Fourier_desc1, Fourier_series_orig, Fourier_series_dif,
@@ -10097,13 +10114,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA BOSQUES ALEATORIOS (YAEL)
-        with gr.Tab("Bosques Aleatorios"):
+        with gr.Tab("RF AUTORREGRESIVO"):
             # DEFINICIÓN DEL ESTADO (Variable invisible en memoria)
             df_rf = gr.State()
             df_combinar_rf = gr.State()
 
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE BOSQUES ALEATORIOS", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE RANDOM FOREST AUTORREGRESIVO", elem_classes="title-text")
 
             with gr.Row():
             # COLUMNA IZQUIERDA (COMBOS)
@@ -10131,7 +10148,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
             # COLUMNA DERECHA (SUBPESTAÑA)
                 with gr.Column(scale=20):
                     #SUBPESTAÑA RF: 
-                    with gr.Tab("Modelo") as rfPredecir:
+                    with gr.Tab("MODELO") as rfPredecir:
                         with gr.Row():
                              with gr.Column(elem_classes="custom-tab-2", scale=20):  
                                 gr.HTML(value="PREDICCION DE RENDIMIENTO", elem_classes="subtitle-text")
@@ -10148,7 +10165,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                             tableOutErrorP_rf = gr.Dataframe(interactive=False, max_height=335)
 
                     #SUBPESTAÑA DataSet:
-                    with gr.Tab("Set de Datos") as rfEda:
+                    with gr.Tab("SET DE DATOS") as rfEda:
                         with gr.Row():
                             with gr.Column(elem_classes="custom-tab-2", scale=20):   
                                  gr.HTML(value="CONTENIDO DE LAS VARIABLES", elem_classes="subtitle-text")
@@ -10204,9 +10221,9 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA REDES NEURONALES (MARCO)
-        with gr.Tab("Redes Neuronales") as tab_NN:
+        with gr.Tab("RED LSTM") as tab_NN:
             with gr.Row(elem_classes="title-tab"):
-                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS MEDIANTE REDES NEURONALES", elem_classes="title-text")
+                gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVOS CON RED NEURONAL LSTM", elem_classes="title-text")
             
             # --- Timeline / Year Range ---
             # with gr.Row():
@@ -10231,20 +10248,23 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                     nn_iter = gr.Number(show_label=False, value=100)
                     # nn_btn_train = gr.Button("Predecir", variant="primary", elem_classes="custom-button3")
 
-            #    with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
-            #       with gr.Row():
-            #            with gr.Column(elem_classes="custom-tab-2", scale=20):  
-            #                gr.HTML(value="PREDICCIÓN CON VARIABLES EXTERNAS (X MULTIVARIADO)", elem_classes="subtitle-text")
-            #            with gr.Column(min_width=150):
-            #                nn_btn_train_mlp = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
-            #        with gr.Column(scale=20, elem_classes="custom-tab"):
-            #            # --- Timeline / Year Range ---
-            #            nn_timeline_mlp = gr.HTML(elem_classes="info-display-3a")
-            #            nn_stats_mlp = gr.HTML(elem_classes="info-display-3a")
-            #            nn_plot_mlp = gr.Plot(show_label=False)
-            #            nn_table_mlp = gr.Dataframe(show_label=False)
+                '''
+                with gr.Tab("Preceptrón Multicapa", scale=20) as tab_NN_mlp:
+                    with gr.Row():
+                        with gr.Column(elem_classes="custom-tab-2", scale=20):  
+                            gr.HTML(value="PREDICCIÓN CON VARIABLES EXTERNAS (X MULTIVARIADO)", elem_classes="subtitle-text")
+                        with gr.Column(min_width=150):
+                            nn_btn_train_mlp = gr.Button("Predecir",variant="primary", visible=True, elem_classes="custom-button3")
+                    with gr.Column(scale=20, elem_classes="custom-tab"):
+                        # --- Timeline / Year Range ---
+                        nn_timeline_mlp = gr.HTML(elem_classes="info-display-3a")
+                        nn_stats_mlp = gr.HTML(elem_classes="info-display-3a")
+                        nn_plot_mlp = gr.Plot(show_label=False)
+                        nn_table_mlp = gr.Dataframe(show_label=False)
+                '''
                
-                with gr.Tab("Red LSTM", scale=20) as tab_NN_lstm:
+                # with gr.Tab("Red LSTM", scale=20) as tab_NN_lstm:
+                with gr.Column(scale=20):
                     with gr.Row():
                         with gr.Column(elem_classes="custom-tab-2", scale=20):  
                             gr.HTML(value="PREDICCIÓN SOLO CON SERIE TEMPORAL (X UNIVARIADO)", elem_classes="subtitle-text")
@@ -10263,6 +10283,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador,
+                         # nn_timeline_mlp,
                          nn_timeline_lstm]
             )
             
@@ -10270,44 +10291,50 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 fn=tab_NN_on_crop_change,
                 inputs=[nn_cultivo],
                 outputs=[nn_provincia, nn_departamento, nn_indicador, 
+                         # nn_timeline_mlp,
                          nn_timeline_lstm]
             )
 
             nn_provincia.change(
                 fn=tab_NN_on_prov_change,
                 inputs=[nn_cultivo, nn_provincia],
-                outputs=[nn_departamento, nn_timeline_lstm]
+                outputs=[nn_departamento, 
+                         # nn_timeline_mlp,
+                         nn_timeline_lstm]
             )
 
             nn_departamento.change(
                 fn=tab_NN_on_dept_change,
                 inputs=[nn_cultivo, nn_provincia, nn_departamento],
-                outputs=[nn_timeline_lstm]
+                outputs=[# nn_timeline_mlp,
+                        nn_timeline_lstm]
             )
 
 
-        #    nn_btn_train_mlp.click(
-        #        fn=tab_NN_train_and_predict_mlp,
-        #        inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
-        #        outputs=[nn_stats_mlp, nn_plot_mlp, nn_table_mlp,
-        #                    NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
-        #                    NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
-        #                    MLP_pred1, MLP_pred2, MLP_pred3]
-        #    )
+            '''
+            nn_btn_train_mlp.click(
+                fn=tab_NN_train_and_predict_mlp,
+                inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
+                outputs=[nn_stats_mlp, nn_plot_mlp, nn_table_mlp,
+                            NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
+                            NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
+                            MLP_pred1, MLP_pred2, MLP_pred3]
+            )
+            '''
 
             nn_btn_train_lstm.click(
                 fn=tab_NN_train_and_predict_lstm,
                 inputs=[nn_cultivo, nn_provincia, nn_departamento, nn_indicador, nn_hidden, nn_iter],
                 outputs=[nn_stats_lstm, nn_plot_lstm, nn_table_lstm,
-                            NN_cultivo, NN_provincia, NN_departamento, NN_indicador,
-                            NN_serie, LSTM_metrica1, LSTM_metrica2, LSTM_metrica3, LSTM_metrica4,
+                            LSTM_cultivo, LSTM_provincia, LSTM_departamento, LSTM_indicador,
+                            LSTM_serie, LSTM_metrica1, LSTM_metrica2, LSTM_metrica3, LSTM_metrica4,
                             LSTM_pred1, LSTM_pred2, LSTM_pred3]
             )
             # fin prg MAF
 
 
         ###### PESTAÑA COMPARATIVA DE MODELOS (JORGE)
-        with gr.Tab("Comparativa de Modelos") as tab_CM:
+        with gr.Tab("COMPARATIVA") as tab_CM:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PREDICCIÓN DE INDICADORES DE CULTIVO PARA LAS PRÓXIMAS TRES CAMPAÑAS", elem_classes="title-text")
 
@@ -10359,13 +10386,13 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
 
         ###### PESTAÑA CONCLUSIONES
-        with gr.Tab("Conclusiones") as tab_conclusiones:
+        with gr.Tab("CONCLUSIONES") as tab_conclusiones:
             with gr.Row(elem_classes="title-tab"):
                 gr.HTML("&nbsp;&nbsp;PRINCIPALES MÉTRICAS DE LOS MODELOS APLICADOS", elem_classes="title-text")
 
             with gr.Row(elem_classes="custom-tab"):
                 tabla_comparativa = gr.Dataframe(
-                    headers=["Métrica / Parámetro", "ARIMA 1", "ARIMA 2", "ARIMA 3", "Random Forest", "Red Multicapa", "Red LSTM"],
+                    headers=["Métrica / Parámetro", "ARIMA 1", "ARIMA 2", "ARIMA 3", "RF Autorregresivo", "Red LSTM"],
                     interactive=False,
                     wrap=True,
                     elem_classes="custom-table"
@@ -10376,7 +10403,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
 
             with gr.Row(elem_classes="custom-tab"):
                 tabla_predicciones = gr.Dataframe(
-                    headers=["Valor Predicho", "ARIMA 1", "ARIMA 2", "ARIMA 3", "Random Forest", "Red Multicapa", "Red LSTM"],
+                    headers=["Valor Predicho", "ARIMA 1", "ARIMA 2", "ARIMA 3", "RF Autorregresivo", "Red LSTM"],
                     interactive=False,
                     wrap=True,
                     elem_classes="custom-table"
@@ -10391,15 +10418,12 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 ARI3_serie, ARI3_metrica1, ARI3_metrica2, ARI3_metrica3, ARI3_metrica4,
                 RF_prediccion, RF_cultivo, RF_provincia, RF_departamento, RF_indicador, 
                 RF_serie, RF_metrica1, RF_metrica2, RF_metrica3, RF_metrica4,
-                MLP_prediccion, NN_cultivo, NN_provincia, NN_departamento, NN_indicador, 
-                NN_serie, MLP_metrica1, MLP_metrica2, MLP_metrica3, MLP_metrica4,
-                LSTM_prediccion, NN_cultivo, NN_provincia, NN_departamento, NN_indicador, 
-                NN_serie, LSTM_metrica1, LSTM_metrica2, LSTM_metrica3, LSTM_metrica4,
+                LSTM_prediccion, LSTM_cultivo, LSTM_provincia, LSTM_departamento, LSTM_indicador, 
+                LSTM_serie, LSTM_metrica1, LSTM_metrica2, LSTM_metrica3, LSTM_metrica4,
                 ARI1_pred1, ARI1_pred2, ARI1_pred3,
                 ARI2_pred1, ARI2_pred2, ARI2_pred3,
                 ARI3_pred1, ARI3_pred2, ARI3_pred3,
                 RF_pred1, RF_pred2, RF_pred3,
-                MLP_pred1, MLP_pred2, MLP_pred3,
                 LSTM_pred1, LSTM_pred2, LSTM_pred3      
             ]
 
