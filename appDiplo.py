@@ -93,8 +93,7 @@ FILE_MAP = {
     "SOJA": "soja_depurado.csv",
     "SORGO": "sorgo_depurado.csv",
     "TRIGO": "trigo_depurado.csv",
-    "YERBA MATE": "yerbamate_depurado.csv",
-    "VARIABLES": "variables_nacionales.csv"
+    "YERBA MATE": "yerbamate_depurado.csv"
 }
 #### MAF
 IMAGE_MAP = {
