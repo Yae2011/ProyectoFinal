@@ -93,7 +93,8 @@ FILE_MAP = {
     "SOJA": "soja_depurado.csv",
     "SORGO": "sorgo_depurado.csv",
     "TRIGO": "trigo_depurado.csv",
-    "YERBA MATE": "yerbamate_depurado.csv"
+    "YERBA MATE": "yerbamate_depurado.csv",
+    "VARIABLES": "variables_nacionales.csv"
 }
 #### MAF
 IMAGE_MAP = {
@@ -7877,7 +7878,7 @@ with gr.Blocks(title="Análisis de Cultivos") as app:
                 
                 with gr.Column(scale=1, elem_classes="custom-tab"):
                     db_cultivo = gr.Radio(label="Cultivo", 
-                                          choices=list(FILE_MAP.keys()), 
+                                          choices=list([c for c in FILE_MAP.keys() if c != "VARIABLES"]), 
                                           value="SOJA",
                                           elem_classes="custom-radio")
                     
